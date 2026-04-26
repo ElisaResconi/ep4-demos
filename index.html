@@ -47,14 +47,12 @@ body::before {
   pointer-events: none; z-index: 0;
 }
 
-/* ── Hero ── */
 .hero {
   position: relative; z-index: 1;
   padding: 56px 52px 44px;
   border-bottom: 1px solid var(--border);
   max-width: 1120px; margin: 0 auto;
 }
-
 .tum-badge {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 11px; color: var(--tum-bright);
@@ -64,7 +62,6 @@ body::before {
   background: rgba(48,112,179,0.05);
   display: inline-block; margin-bottom: 20px;
 }
-
 .hero h1 {
   font-family: 'IBM Plex Mono', monospace;
   font-size: clamp(24px, 3vw, 38px);
@@ -72,7 +69,6 @@ body::before {
   letter-spacing: -0.01em; line-height: 1.15;
 }
 .hero h1 span { color: var(--tum-bright); }
-
 .hero-sub {
   margin-top: 14px;
   font-size: 15px; color: var(--text-dim);
@@ -84,7 +80,6 @@ body::before {
   transition: border-color 0.2s;
 }
 .hero-sub a:hover { border-color: var(--tum-bright); }
-
 .hero-meta {
   margin-top: 28px;
   display: flex; gap: 18px; flex-wrap: wrap; align-items: center;
@@ -106,7 +101,6 @@ body::before {
 }
 .claude-note .ai { color: #e06c3a; font-weight: 500; }
 
-/* ── Nav ── */
 .nav-strip {
   position: relative; z-index: 1;
   max-width: 1120px; margin: 0 auto;
@@ -130,14 +124,12 @@ body::before {
 }
 .nav-pill:hover { color: var(--text-bright); background: var(--surface); }
 
-/* ── Content ── */
 .content {
   position: relative; z-index: 1;
   max-width: 1120px; margin: 0 auto;
   padding: 8px 52px 80px;
 }
 
-/* ── Topic ── */
 .topic {
   margin-top: 48px;
   opacity: 0; transform: translateY(10px);
@@ -187,14 +179,12 @@ body::before {
 .t6 .topic-tag{color:var(--t6);border-color:rgba(248,113,113,0.22);background:rgba(248,113,113,0.04)}
 .t7 .topic-tag{color:var(--t7);border-color:rgba(96,217,250,0.22);background:rgba(96,217,250,0.04)}
 
-/* ── Demo grid ── */
 .demo-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
   gap: 8px;
 }
 
-/* ── Demo card ── */
 .demo-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -211,6 +201,18 @@ body::before {
 }
 .demo-card:hover { border-color:var(--border2); background:#10151e; transform:translateY(-1px); }
 .demo-card:hover::after { opacity: 1; }
+
+/* coming soon cards */
+.demo-card.soon {
+  opacity: 0.45; cursor: default; pointer-events: none;
+}
+.soon-badge {
+  position: absolute; top: 10px; right: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-dim); border: 1px solid var(--border2);
+  padding: 2px 6px; border-radius: 2px;
+}
 
 .t1 .demo-card::after{background:var(--t1)}
 .t2 .demo-card::after{background:var(--t2)}
@@ -239,7 +241,6 @@ body::before {
 }
 .demo-card:hover .card-arrow { color:var(--text-dim); transform:translateX(2px); }
 
-/* ── Footer ── */
 footer {
   position:relative; z-index:1;
   border-top:1px solid var(--border);
@@ -296,14 +297,14 @@ footer a:hover { text-decoration:underline; }
 
 <div class="content">
 
-  <!-- 1 -->
+  <!-- 1. Quantization -->
   <div class="topic t1" id="quantization">
     <div class="topic-header">
       <div class="topic-tag">Quantization</div>
       <div class="topic-title">Why Energy is Discrete
         <span class="topic-de">Warum Energie diskret ist</span>
       </div>
-      <div class="topic-count">2 demos</div>
+      <div class="topic-count">3 demos</div>
     </div>
     <div class="demo-grid">
       <a class="demo-card" href="quantization/bohr_spiral_collapse.html">
@@ -313,15 +314,21 @@ footer a:hover { text-decoration:underline; }
         <div class="card-arrow">→</div>
       </a>
       <a class="demo-card" href="quantization/debroglie_kreisbahn_interaktiv_n10.html">
-        <div class="card-file">debyglie_kreisbahn_interaktiv_n10.html</div>
+        <div class="card-file">debroglie_kreisbahn_interaktiv_n10.html</div>
         <div class="card-title">de Broglie on a Circular Orbit</div>
         <div class="card-desc">Non-integer n destroys the wave through destructive interference; integer n survives as a standing wave. Quantization forced, not postulated.</div>
+        <div class="card-arrow">→</div>
+      </a>
+      <a class="demo-card" href="quantization/debroglie_kreisbahn_interaktiv.html">
+        <div class="card-file">debroglie_kreisbahn_interaktiv.html</div>
+        <div class="card-title">de Broglie on a Circular Orbit (basic)</div>
+        <div class="card-desc">Simpler version of the de Broglie circular orbit demo.</div>
         <div class="card-arrow">→</div>
       </a>
     </div>
   </div>
 
-  <!-- 2 -->
+  <!-- 2. Wavefunctions -->
   <div class="topic t2" id="wavefunctions">
     <div class="topic-header">
       <div class="topic-tag">Wavefunctions &amp; Probability</div>
@@ -331,11 +338,11 @@ footer a:hover { text-decoration:underline; }
       <div class="topic-count">4 demos</div>
     </div>
     <div class="demo-grid">
-      <a class="demo-card" href="wavefunctions/wavepacket_fourier_demo.html">
+      <a class="demo-card soon" href="#">
+        <div class="soon-badge">coming soon</div>
         <div class="card-file">wavepacket_fourier_demo.html</div>
         <div class="card-title">Fourier Wavepacket</div>
         <div class="card-desc">Build a Gaussian wavepacket from sinusoidal components. The σ slider reveals the Heisenberg position–momentum tradeoff in real time.</div>
-        <div class="card-arrow">→</div>
       </a>
       <a class="demo-card" href="wavefunctions/wavepacket_normalized.html">
         <div class="card-file">wavepacket_normalized.html</div>
@@ -343,22 +350,28 @@ footer a:hover { text-decoration:underline; }
         <div class="card-desc">Three panels: ψ(x), |ψ(x)|², and |φ(k)|² shown simultaneously. The wavefunction, its probability density, and its momentum representation.</div>
         <div class="card-arrow">→</div>
       </a>
-      <a class="demo-card" href="wavefunctions/elektron_messung_orbital.html">
-        <div class="card-file">elektron_messung_orbital.html</div>
-        <div class="card-title">Electron Measurement &amp; Born Rule</div>
-        <div class="card-desc">Click "measure" to sample a single electron position from |ψ_nlm|². Repeat many times — the orbital reconstructs itself, one measurement at a time.</div>
+      <a class="demo-card" href="wavefunctions/Wo ist das Elektron?.html">
+        <div class="card-file">Wo ist das Elektron?.html</div>
+        <div class="card-title">Wo ist das Elektron?</div>
+        <div class="card-desc">Click to sample a single electron position from |ψ_nlm|². Repeat many times — the orbital reconstructs itself, one measurement at a time.</div>
         <div class="card-arrow">→</div>
       </a>
-      <a class="demo-card" href="wavefunctions/superposition_interferenz.html">
+      <a class="demo-card" href="hydrogen/elektron_messung_orbital.html">
+        <div class="card-file">elektron_messung_orbital.html</div>
+        <div class="card-title">Electron Measurement &amp; Born Rule</div>
+        <div class="card-desc">Sample electron positions from |ψ_nlm|² for selectable n, l, m states. Many measurements reconstruct the orbital — the Born rule made visible.</div>
+        <div class="card-arrow">→</div>
+      </a>
+      <a class="demo-card soon" href="#">
+        <div class="soon-badge">coming soon</div>
         <div class="card-file">superposition_interferenz.html</div>
         <div class="card-title">Superposition vs. Classical Mixture</div>
         <div class="card-desc">Compare ½|ψ₁|²+½|ψ₂|² with |ψ₁+e^{iφ}ψ₂|²/2. A phase slider reveals the interference term — the thing classical probabilities can never produce.</div>
-        <div class="card-arrow">→</div>
       </a>
     </div>
   </div>
 
-  <!-- 3 -->
+  <!-- 3. Double Slit -->
   <div class="topic t3" id="doubleslit">
     <div class="topic-header">
       <div class="topic-tag">Double Slit</div>
@@ -374,8 +387,8 @@ footer a:hover { text-decoration:underline; }
         <div class="card-desc">Animated classical particles, each traveling through exactly one slit. Result: two Gaussian humps, no interference. The baseline before quantum mechanics.</div>
         <div class="card-arrow">→</div>
       </a>
-      <a class="demo-card" href="doubleslit/doppelspalt_elektronen.html">
-        <div class="card-file">doppelspalt_elektronen.html</div>
+      <a class="demo-card" href="doubleslit/Elektronen-Doppelspalt.html">
+        <div class="card-file">Elektronen-Doppelspalt.html</div>
         <div class="card-title">Quantum Electrons</div>
         <div class="card-desc">The interference pattern builds up one electron at a time. Toggle between double and single slit to see where the fringes come from.</div>
         <div class="card-arrow">→</div>
@@ -392,22 +405,22 @@ footer a:hover { text-decoration:underline; }
         <div class="card-desc">Toggle the detector on and off. With which-way information the pattern vanishes; without it, interference returns. Complementarity in a single click.</div>
         <div class="card-arrow">→</div>
       </a>
-      <a class="demo-card" href="doubleslit/doppelspalt_komplementaritaet.html">
+      <a class="demo-card soon" href="#">
+        <div class="soon-badge">coming soon</div>
         <div class="card-file">doppelspalt_komplementaritaet.html</div>
         <div class="card-title">Complementarity Slider</div>
         <div class="card-desc">A continuous visibility slider V interpolates between fully classical and fully quantum — fringe visibility and which-way information trade off continuously.</div>
-        <div class="card-arrow">→</div>
       </a>
-      <a class="demo-card" href="doubleslit/doppelspalt_wellenpaket.html">
+      <a class="demo-card soon" href="#">
+        <div class="soon-badge">coming soon</div>
         <div class="card-file">doppelspalt_wellenpaket.html</div>
         <div class="card-title">Wavepacket through the Slit</div>
         <div class="card-desc">Huygens construction: a Gaussian wavepacket hits the barrier, two spherical waves emerge and interfere. "Messen" collapses the wavefunction to a single point.</div>
-        <div class="card-arrow">→</div>
       </a>
     </div>
   </div>
 
-  <!-- 4 -->
+  <!-- 4. Angular Momentum -->
   <div class="topic t4" id="angularmomentum">
     <div class="topic-header">
       <div class="topic-tag">Angular Momentum</div>
@@ -423,14 +436,14 @@ footer a:hover { text-decoration:underline; }
         <div class="card-desc">Animated cone diagram with precessing L vector. The n, ℓ, m hierarchy visualized — the angular momentum vector can never align parallel to the z-axis.</div>
         <div class="card-arrow">→</div>
       </a>
-      <a class="demo-card" href="angular-momentum/kugelflaechen.html">
+      <a class="demo-card soon" href="#">
+        <div class="soon-badge">coming soon</div>
         <div class="card-file">kugelflaechen.html</div>
         <div class="card-title">Spherical Harmonics |Y_lm|²</div>
         <div class="card-desc">Polar diagrams for ℓ = 0 to 5, 2D cross-section and 3D surface side by side. Explicit analytic formulas shown live for each (ℓ, m) state.</div>
-        <div class="card-arrow">→</div>
       </a>
-      <a class="demo-card" href="angular-momentum/raumquantisierung_L_und_S.html">
-        <div class="card-file">raumquantisierung_L_und_S.html</div>
+      <a class="demo-card" href="angular-momentum/Raumquantisierung: L und S.html">
+        <div class="card-file">Raumquantisierung: L und S.html</div>
         <div class="card-title">Orbital L and Spin S Side by Side</div>
         <div class="card-desc">Cone diagrams for L (ℓ = 0–3) and S (s = ½) with precession — the key difference between integer and half-integer quantum numbers made visual.</div>
         <div class="card-arrow">→</div>
@@ -438,7 +451,7 @@ footer a:hover { text-decoration:underline; }
     </div>
   </div>
 
-  <!-- 5 -->
+  <!-- 5. Hydrogen -->
   <div class="topic t5" id="hydrogen">
     <div class="topic-header">
       <div class="topic-tag">Hydrogen Atom</div>
@@ -463,7 +476,7 @@ footer a:hover { text-decoration:underline; }
     </div>
   </div>
 
-  <!-- 6 -->
+  <!-- 6. Quantum Statistics -->
   <div class="topic t6" id="statistics">
     <div class="topic-header">
       <div class="topic-tag">Quantum Statistics</div>
@@ -482,7 +495,7 @@ footer a:hover { text-decoration:underline; }
     </div>
   </div>
 
-  <!-- 7 -->
+  <!-- 7. Zeeman -->
   <div class="topic t7" id="zeeman">
     <div class="topic-header">
       <div class="topic-tag">Zeeman Effect</div>
@@ -492,8 +505,8 @@ footer a:hover { text-decoration:underline; }
       <div class="topic-count">1 demo</div>
     </div>
     <div class="demo-grid">
-      <a class="demo-card" href="zeeman/zeeman_wasserstoff_v2.html">
-        <div class="card-file">zeeman_wasserstoff_v2.html</div>
+      <a class="demo-card" href="zeeman/Zeeman-Effekt | Wasserstoff im Magnetfeld.html">
+        <div class="card-file">Zeeman-Effekt | Wasserstoff im Magnetfeld.html</div>
         <div class="card-title">Normal Zeeman Effect</div>
         <div class="card-desc">All 2ℓ+1 orbital shapes shown simultaneously alongside the energy diagram. Drag B from 0 to 50 T — the degenerate levels fan out, but the orbital shapes never change.</div>
         <div class="card-arrow">→</div>
