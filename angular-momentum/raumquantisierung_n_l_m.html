@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raumquantisierung: n, l, m</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: Helvetica, Arial, sans-serif;
+  background: #ffffff;
+  color: #1a1a1a;
+  padding: 24px;
+  min-height: 100vh;
+}
+@media (prefers-color-scheme: dark) {
+  body { background: #0f0f18; color: #e8e6de; }
+}
+h1 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #1a1a1a;
+}
+@media (prefers-color-scheme: dark) { h1 { color: #e8e6de; } }
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 230px;
+  gap: 24px;
+  align-items: start;
+  max-width: 780px;
+}
+canvas {
+  width: 100%;
+  border-radius: 10px;
+  border: 0.5px solid rgba(120,120,140,0.2);
+}
+.panel { padding-top: 4px; }
+
+.qrow { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.qlabel { font-size:14px; color:#5F5E5A; min-width:16px; font-weight:600; }
+@media (prefers-color-scheme:dark) { .qlabel { color:#9c9a92; } }
+.qbtns { display:flex; gap:5px; flex-wrap:wrap; }
+.qbtn {
+  font-size: 13px;
+  padding: 5px 11px;
+  border-radius: 8px;
+  border: 0.5px solid rgba(120,120,140,0.35);
+  background: transparent;
+  cursor: pointer;
+  color: #1a1a1a;
+  transition: all 0.15s;
+}
+@media (prefers-color-scheme:dark) { .qbtn { color:#e8e6de; border-color:rgba(180,180,200,0.25); } }
+.qbtn:hover { background: rgba(120,120,140,0.1); }
+.qbtn.active.cn { background:#E1F5EE; border-color:#0F6E56; color:#085041; font-weight:600; }
+.qbtn.active.cl { background:#E6F1FB; border-color:#185FA5; color:#0C447C; font-weight:600; }
+.qbtn.active.cm { background:#FAEEDA; border-color:#BA7517; color:#633806; font-weight:600; }
+
+.hint { font-size:11px; color:#B4B2A9; margin: -4px 0 10px 22px; line-height:1.5; }
+.hint span { font-weight:500; color:#5F5E5A; }
+@media (prefers-color-scheme:dark) { .hint span { color:#9c9a92; } }
+
+.badges { display:flex; flex-wrap:wrap; gap:5px; margin: 12px 0 10px; }
+.badge { font-size:12px; font-weight:500; padding:3px 9px; border-radius:20px; display:inline-block; }
+.bn { background:#E1F5EE; color:#085041; }
+.bl { background:#E6F1FB; color:#0C447C; }
+.bm { background:#FAEEDA; color:#633806; }
+.ba { background:#FCEBEB; color:#791F1F; }
+
+.divider { border:none; border-top:0.5px solid rgba(120,120,140,0.2); margin: 10px 0; }
+.info-block { font-size:12px; color:#5F5E5A; line-height:1.8; }
+@media (prefers-color-scheme:dark) { .info-block { color:#9c9a92; } }
+.info-block .dim { color:#B4B2A9; }
+@media (prefers-color-scheme:dark) { .info-block .dim { color:#6e6c66; } }
+
+#stateCount { font-weight:500; color:#1a1a1a; font-size:13px; white-space:pre-line; margin-top:4px; }
+@media (prefers-color-scheme:dark) { #stateCount { color:#e8e6de; } }
+</style>
+</head>
+<body>
+
+<h1>Raumquantisierung des Drehimpulses</h1>
+
+<div class="layout">
+
+<canvas id="cv" width="460" height="520"></canvas>
+
+<div class="panel">
+
+  <div class="qrow">
+    <span class="qlabel">n</span>
+    <div class="qbtns" id="nBtns"></div>
+  </div>
+  <div class="hint">l = 0 … n−1 &nbsp;→&nbsp; <span id="lAllowed"></span></div>
+
+  <div class="qrow">
+    <span class="qlabel">l</span>
+    <div class="qbtns" id="lBtns"></div>
+  </div>
+  <div class="hint">m = −l … +l &nbsp;→&nbsp; <span id="mAllowed"></span></div>
+
+  <div class="qrow">
+    <span class="qlabel">m</span>
+    <div class="qbtns" id="mBtns"></div>
+  </div>
+
+  <div class="badges" id="badges"></div>
+
+  <hr class="divider">
+  <div class="info-block">
+    <div>[L², L<sub>z</sub>] = 0 <span class="dim">→ l, m scharf</span></div>
+    <div>[L<sub>x</sub>, L<sub>y</sub>] ≠ 0 <span class="dim">→ φ unbestimmt → Präzession</span></div>
+  </div>
+
+  <hr class="divider">
+  <div class="info-block" style="color:#B4B2A9;margin-bottom:4px;">Zustände:</div>
+  <div id="stateCount"></div>
+
+</div>
+</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const W=460, H=520, cx=200, cy=270, UNIT=52;
+const lSpec=['s','p','d','f'];
+let curN=2, curL=1, curM=0, phi=0;
+
+function buildNBtns(){
+  const c=document.getElementById('nBtns'); c.innerHTML='';
+  [1,2,3,4].forEach(n=>{
+    const b=document.createElement('button');
+    b.className='qbtn cn'+(n===curN?' active':'');
+    b.textContent=n;
+    b.onclick=()=>{ curN=n; curL=Math.min(curL,n-1); curM=Math.max(-curL,Math.min(curL,curM)); rebuild(); };
+    c.appendChild(b);
+  });
+}
+
+function buildLBtns(){
+  const c=document.getElementById('lBtns'); c.innerHTML='';
+  const allowed=[];
+  for(let l=0;l<curN;l++) allowed.push(l);
+  document.getElementById('lAllowed').textContent=allowed.map(l=>l+' ('+lSpec[l]+')').join(', ');
+  allowed.forEach(l=>{
+    const b=document.createElement('button');
+    b.className='qbtn cl'+(l===curL?' active':'');
+    b.textContent=l+' ('+lSpec[l]+')';
+    b.onclick=()=>{ curL=l; curM=Math.max(-l,Math.min(l,curM)); rebuild(); };
+    c.appendChild(b);
+  });
+}
+
+function buildMBtns(){
+  const c=document.getElementById('mBtns'); c.innerHTML='';
+  const allowed=[];
+  for(let m=-curL;m<=curL;m++) allowed.push(m);
+  document.getElementById('mAllowed').textContent=allowed.map(m=>m===0?'0':(m>0?'+':'')+m).join(', ');
+  allowed.forEach(m=>{
+    const b=document.createElement('button');
+    const ms=m===0?'0':(m>0?'+':'')+m;
+    b.className='qbtn cm'+(m===curM?' active':'');
+    b.textContent=ms;
+    b.onclick=()=>{ curM=m; rebuild(); };
+    c.appendChild(b);
+  });
+}
+
+function buildBadges(){
+  const c=document.getElementById('badges'); c.innerHTML='';
+  const Lmag=Math.sqrt(curL*(curL+1));
+  const E=(-(13.6/(curN*curN))).toFixed(2);
+  const ms=curM===0?'0':(curM>0?'+':'')+curM;
+  [
+    [`n = ${curN}`,'bn'],
+    [`l = ${curL} (${lSpec[curL]})`,'bl'],
+    [`m = ${ms}`,'bm'],
+    [`E = ${E} eV`,'bn'],
+    [`|L| = ħ√${curL*(curL+1)}`,'bl'],
+    [`Lz = ${ms}ħ`,'bm'],
+    [`${2*curL+1} m-Werte`,'ba']
+  ].forEach(([t,cls])=>{
+    const s=document.createElement('span');
+    s.className='badge '+cls; s.textContent=t; c.appendChild(s);
+  });
+  document.getElementById('stateCount').textContent=
+    `n=${curN}: ${curN*curN} Zustände (n²)\nl=${curL}: ${2*curL+1} m-Werte (2l+1)`;
+}
+
+function rebuild(){ buildNBtns(); buildLBtns(); buildMBtns(); buildBadges(); }
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  const dark=window.matchMedia('(prefers-color-scheme:dark)').matches;
+  const textSec=dark?'#9c9a92':'#5F5E5A';
+  const axCol=dark?'rgba(180,180,200,0.35)':'rgba(100,110,140,0.3)';
+  const dashCol=dark?'rgba(180,180,200,0.16)':'rgba(130,135,145,0.18)';
+
+  const l=curL, m=curM, n=curN;
+  const Lmag=Math.sqrt(l*(l+1));
+  const Lpx=Lmag*UNIT;
+
+  // z-axis
+  ctx.strokeStyle=axCol; ctx.lineWidth=1.2; ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.moveTo(cx,48); ctx.lineTo(cx,H-38); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.font='600 15px Helvetica,Arial,sans-serif';
+  ctx.fillStyle=textSec; ctx.textAlign='left';
+  ctx.fillText('z',cx+5,44);
+
+  // cones for all m of current l
+  for(let mi=-l;mi<=l;mi++){
+    const yLvl=cy-mi*UNIT;
+    const Lz_px=mi*UNIT;
+    const Lperp=Math.sqrt(Math.max(0,Lpx*Lpx-Lz_px*Lz_px));
+    const ry=Lperp*0.28;
+    const isActive=mi===m;
+
+    ctx.strokeStyle=isActive?'rgba(55,138,221,0.65)':dashCol;
+    ctx.lineWidth=isActive?1.3:0.6;
+    ctx.setLineDash([4,3]);
+    if(Lperp>2){ ctx.beginPath(); ctx.ellipse(cx,yLvl,Lperp,ry,0,0,2*Math.PI); ctx.stroke(); }
+    ctx.setLineDash([]);
+
+    ctx.strokeStyle=dashCol; ctx.lineWidth=0.6; ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(cx-170,yLvl); ctx.lineTo(cx+Lperp+28,yLvl); ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.font=(isActive?'600':'400')+' 13px Helvetica,Arial,sans-serif';
+    ctx.fillStyle=isActive?(dark?'#85B7EB':'#0C447C'):(dark?'rgba(150,160,180,0.4)':'rgba(100,110,140,0.38)');
+    ctx.textAlign='right';
+    const ms=mi===0?'0':(mi>0?'+':'')+mi;
+    ctx.fillText('m='+ms, cx-16, yLvl+5);
+
+    ctx.strokeStyle=isActive?'#BA7517':dark?'rgba(186,117,23,0.22)':'rgba(186,117,23,0.18)';
+    ctx.lineWidth=isActive?2:0.7;
+    ctx.beginPath(); ctx.moveTo(cx-3,yLvl); ctx.lineTo(cx+3,yLvl); ctx.stroke();
+    ctx.font=(isActive?'600':'400')+' 12px Helvetica,Arial,sans-serif';
+    ctx.fillStyle=isActive?'#BA7517':dark?'rgba(186,117,23,0.32)':'rgba(140,90,10,0.28)';
+    ctx.textAlign='left';
+    ctx.fillText(ms+'ħ', cx+8, yLvl+4);
+  }
+
+  // active L vector with precession
+  if(l>0){
+    const yLvl=cy-m*UNIT;
+    const Lz_px=m*UNIT;
+    const Lperp=Math.sqrt(Math.max(0,Lpx*Lpx-Lz_px*Lz_px));
+    const tipX=cx+Lperp*Math.cos(phi);
+    const tipY=yLvl+Lperp*0.28*Math.sin(phi);
+
+    // dashed projections
+    ctx.strokeStyle='#BA7517'; ctx.lineWidth=1.5; ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.moveTo(tipX,tipY); ctx.lineTo(cx,yLvl); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx,yLvl); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Lz brace
+    ctx.strokeStyle='#BA7517'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(cx+4,cy); ctx.lineTo(cx+4,yLvl); ctx.stroke();
+
+    // L vector
+    ctx.strokeStyle='#185FA5'; ctx.lineWidth=3.2; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(tipX,tipY); ctx.stroke();
+    const ang=Math.atan2(tipY-cy,tipX-cx);
+    ctx.beginPath();
+    ctx.moveTo(tipX,tipY);
+    ctx.lineTo(tipX-12*Math.cos(ang-0.38),tipY-12*Math.sin(ang-0.38));
+    ctx.lineTo(tipX-12*Math.cos(ang+0.38),tipY-12*Math.sin(ang+0.38));
+    ctx.closePath(); ctx.fillStyle='#185FA5'; ctx.fill();
+
+    // labels
+    ctx.font='600 12px Helvetica,Arial,sans-serif';
+    ctx.fillStyle='#185FA5'; ctx.textAlign='left';
+    ctx.fillText('|L|=ħ√'+(l*(l+1)), (cx+tipX)/2+5, (cy+tipY)/2-7);
+
+    const ms2=m===0?'0':(m>0?'+':'')+m;
+    ctx.fillStyle='#854F0B'; ctx.textAlign='left';
+    ctx.fillText('Lz='+ms2+'ħ', cx+8, (cy+yLvl)/2+5);
+
+    if(m===l && l>0){
+      const gap=Lpx-Math.abs(m*UNIT);
+      if(gap>4){
+        ctx.font='italic 11px Helvetica,Arial,sans-serif';
+        ctx.fillStyle='#A32D2D'; ctx.textAlign='left';
+        ctx.fillText('L ≠ lħ  (Restunschärfe)', cx+10, cy-m*UNIT-22);
+      }
+    }
+  } else {
+    ctx.fillStyle='#888780';
+    ctx.beginPath(); ctx.arc(cx,cy,8,0,2*Math.PI); ctx.fill();
+    ctx.font='13px Helvetica,Arial,sans-serif';
+    ctx.fillStyle=textSec; ctx.textAlign='left';
+    ctx.fillText('l=0: L=0, kugelsymmetrisch', cx+16, cy-6);
+    ctx.fillText('m=0 (einziger Zustand)', cx+16, cy+10);
+  }
+
+  // origin dot
+  ctx.fillStyle='#888780';
+  ctx.beginPath(); ctx.arc(cx,cy,4.5,0,2*Math.PI); ctx.fill();
+
+  // top-left info
+  ctx.font='700 14px Helvetica,Arial,sans-serif';
+  ctx.fillStyle='#085041'; ctx.textAlign='left';
+  ctx.fillText('n = '+n, 14, 26);
+  ctx.font='12px Helvetica,Arial,sans-serif';
+  ctx.fillStyle=textSec;
+  ctx.fillText('E = '+(-(13.6/(n*n)).toFixed(2))+' eV', 14, 43);
+  ctx.fillText('l ∈ {0…'+(n-1)+'}   →   '+n*n+' Zustände', 14, 59);
+
+  phi+=0.022;
+  requestAnimationFrame(draw);
+}
+
+rebuild();
+draw();
+</script>
+</body>
+</html>

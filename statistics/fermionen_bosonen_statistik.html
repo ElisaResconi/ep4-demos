@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fermionen & Bosonen — EP4</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #0a0e1a;
+  color: #e8edf5;
+  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  padding: 24px 16px;
+  min-height: 100vh;
+}
+#app { width: 100%; max-width: 980px; }
+
+.title { font-size: 17px; font-weight: 600; letter-spacing: 0.02em; margin-bottom: 3px; }
+.subtitle { font-size: 12px; color: #8899aa; margin-bottom: 16px; }
+
+/* Two columns */
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.col { display: flex; flex-direction: column; gap: 10px; }
+
+.col-header {
+  text-align: center;
+  padding: 10px 12px;
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+.col-header.fermion {
+  background: #0d1f35;
+  border: 1.5px solid #0065bd;
+  color: #5ba3d9;
+}
+.col-header.boson {
+  background: #1a1a0a;
+  border: 1.5px solid #f0a500;
+  color: #f0c040;
+}
+.col-header .sub {
+  font-size: 11px; font-weight: 400;
+  color: #8899aa; margin-top: 3px; font-style: italic;
+}
+
+.panel {
+  background: #111827;
+  border: 1px solid #1e2d45;
+  border-radius: 10px;
+  padding: 14px;
+}
+
+/* Energy level building */
+.building { position: relative; width: 100%; }
+canvas.cv-build { border-radius: 6px; display: block; width: 100%; }
+
+/* Controls */
+.controls-row {
+  display: flex; gap: 10px; justify-content: center;
+  flex-wrap: wrap; margin-bottom: 10px;
+}
+button {
+  background: transparent; color: #e8edf5;
+  border: 1px solid #1e2d45; border-radius: 7px;
+  padding: 7px 16px; font-size: 13px; cursor: pointer;
+  transition: all 0.15s; font-family: inherit;
+}
+button:hover { border-color: #0065bd; color: #5ba3d9; }
+button.add-f {
+  background: #0065bd; border-color: #0065bd;
+  color: #fff; font-weight: 600;
+}
+button.add-f:hover { background: #0052a0; }
+button.add-b {
+  background: #b07d00; border-color: #f0a500;
+  color: #fff; font-weight: 600;
+}
+button.add-b:hover { background: #8a6000; }
+button.reset-btn { border-color: #445; color: #8899aa; }
+button.reset-btn:hover { border-color: #e74c3c; color: #e74c3c; }
+
+.msg-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  margin-bottom: 10px;
+}
+.msg {
+  font-size: 12px; color: #8899aa;
+  text-align: center; font-style: italic;
+  min-height: 32px; line-height: 1.5;
+  padding: 6px 8px;
+  background: #0a0e1a;
+  border-radius: 7px;
+  transition: color 0.3s;
+}
+.msg.blue { color: #5ba3d9; }
+.msg.gold { color: #f0c040; }
+.msg.red  { color: #e74c3c; font-style: normal; font-weight: 600; }
+
+.insight {
+  background: #0d1a2e;
+  border: 1px solid #0065bd;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 12px; color: #8baac8;
+  text-align: center; line-height: 1.7;
+}
+.insight strong { color: #5ba3d9; }
+.insight .gold { color: #f0c040; }
+
+.tum-badge {
+  font-size: 10px; color: #1e2d45;
+  text-align: right; margin-top: 10px;
+  letter-spacing: 0.08em;
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="title">Fermionen &amp; Bosonen — Quantenstatistik</div>
+  <div class="subtitle">Pauli-Prinzip vs. Bose-Einstein: wie Teilchen Quantenzust&auml;nde besetzen</div>
+
+  <div class="controls-row">
+    <button class="add-f" id="btnAddF">+ Elektron hinzuf&uuml;gen</button>
+    <button class="add-b" id="btnAddB">+ Boson hinzuf&uuml;gen</button>
+    <button class="reset-btn" id="btnReset">Reset</button>
+  </div>
+
+  <div class="columns">
+    <div class="col">
+      <div class="col-header fermion">
+        Fermionen — Elektronen
+        <div class="sub">Spin ½ &nbsp;|&nbsp; antisymmetrische Wellenfunktion &nbsp;|&nbsp; Fermi-Dirac</div>
+      </div>
+      <div class="panel">
+        <canvas class="cv-build" id="cvF" width="420" height="480"></canvas>
+      </div>
+    </div>
+    <div class="col">
+      <div class="col-header boson">
+        Bosonen
+        <div class="sub">Spin ganzzahlig &nbsp;|&nbsp; symmetrische Wellenfunktion &nbsp;|&nbsp; Bose-Einstein</div>
+      </div>
+      <div class="panel">
+        <canvas class="cv-build" id="cvB" width="420" height="480"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="msg-row">
+    <div class="msg blue" id="msgF">Dr&uuml;cke &ldquo;+ Elektron hinzuf&uuml;gen&rdquo;</div>
+    <div class="msg gold" id="msgB">Dr&uuml;cke &ldquo;+ Boson hinzuf&uuml;gen&rdquo;</div>
+  </div>
+
+  <div class="insight">
+    <strong>Pauli-Prinzip:</strong>
+    Zwei Elektronen mit identischen Quantenzahlen (n, &ell;, m, m<sub>s</sub>) &rarr;
+    &psi;(1,2) = &minus;&psi;(2,1) und &psi;(1,2) = &psi;(2,1) gleichzeitig &rarr;
+    <strong>&psi; = 0</strong> &mdash; der Zustand existiert nicht.
+    &nbsp;&nbsp;|&nbsp;&nbsp;
+    <span class="gold"><strong>Bosonen:</strong> &psi;(1,2) = +&psi;(2,1) &rarr; kein Widerspruch &rarr; beliebig viele im selben Zustand.</span>
+  </div>
+  <div class="tum-badge">TUM &mdash; Experimentalphysik 4</div>
+</div>
+
+<script>
+// ── Energy levels for hydrogen-like atom ──────────────────────────────────
+// States: {n, l, m, ms, label}
+// We show n=1,2,3 with all (l,m,ms) substates
+function buildStates() {
+  const states = [];
+  for (let n = 1; n <= 3; n++) {
+    for (let l = 0; l < n; l++) {
+      for (let m = -l; m <= l; m++) {
+        for (const ms of [+0.5, -0.5]) {
+          states.push({ n, l, m, ms,
+            label: `n=${n} ℓ=${l} m=${m} mₛ=${ms>0?'+½':'−½'}`,
+            shortLabel: `(${n},${l},${m},${ms>0?'↑':'↓'})` });
+        }
+      }
+    }
+  }
+  return states;
+}
+
+const ALL_STATES = buildStates();
+
+// Energy: E_n = -13.6/n² eV (relative, for display)
+function energy(n) { return -1 / (n * n); } // normalized
+
+// ── Canvas setup ──────────────────────────────────────────────────────────
+const CW = 420, CH = 480;
+const ctxF = document.getElementById('cvF').getContext('2d');
+const ctxB = document.getElementById('cvB').getContext('2d');
+
+// Occupied states
+let fermionsOccupied = []; // list of state indices
+let bosonsLevel = {};      // {n: count}
+let bosonsN = 1;           // bosons always pile into n=1 first
+
+// ── Layout constants ──────────────────────────────────────────────────────
+const MARGIN_L = 54, MARGIN_R = 14;
+const TOP = 30, BOTTOM = CH - 30;
+const LEVEL_H = CH - TOP - BOTTOM; // drawable height
+
+// n=1,2,3 y positions (higher energy = higher on screen = lower y)
+// E_1=-1, E_2=-0.25, E_3=-0.111...  map to y
+function energyToY(n) {
+  // map E in [-1, 0] to [BOTTOM, TOP]
+  const E = energy(n);
+  const Emin = -1.0, Emax = -0.08;
+  return BOTTOM - (E - Emin) / (Emax - Emin) * (BOTTOM - TOP);
+}
+
+// ── Draw fermion building ─────────────────────────────────────────────────
+function drawFermions() {
+  const ctx = ctxF;
+  ctx.fillStyle = '#0a0e1a';
+  ctx.fillRect(0, 0, CW, CH);
+
+  // For each n, draw the substate boxes
+  for (let n = 1; n <= 3; n++) {
+    const y = energyToY(n);
+    const substates = ALL_STATES.filter(s => s.n === n);
+    const nStates = substates.length; // 2*n²
+
+    // Energy label
+    ctx.fillStyle = '#8899aa';
+    ctx.font = '11px Segoe UI, Arial, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(`n=${n}`, MARGIN_L - 8, y + 4);
+    ctx.fillStyle = '#445566';
+    ctx.font = '10px Segoe UI, Arial, sans-serif';
+    ctx.fillText(`E=${(-13.6/n/n).toFixed(2)} eV`, MARGIN_L - 8, y + 16);
+
+    // Base line
+    ctx.strokeStyle = '#2a3d55';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(MARGIN_L, y);
+    ctx.lineTo(CW - MARGIN_R, y);
+    ctx.stroke();
+
+    // Group substates by (l, m)
+    const groups = {};
+    for (const s of substates) {
+      const key = `${s.l},${s.m}`;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(s);
+    }
+    const groupKeys = Object.keys(groups);
+    const nGroups = groupKeys.length; // n²
+    const availW = CW - MARGIN_L - MARGIN_R;
+    const groupW = availW / nGroups;
+    const boxW = 26, boxH = 22;
+
+    groupKeys.forEach((key, gi) => {
+      const [l, m] = key.split(',').map(Number);
+      const gx = MARGIN_L + gi * groupW + groupW / 2;
+
+      // Group label (l, m)
+      ctx.fillStyle = '#556677';
+      ctx.font = '9px Segoe UI, Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(`ℓ=${l} m=${m}`, gx, y - 28);
+
+      // Two boxes for ms=↑ and ms=↓
+      const msVals = [+0.5, -0.5];
+      msVals.forEach((ms, mi) => {
+        const bx = gx + (mi === 0 ? -boxW/2 - 2 : 2);
+        const by = y - boxH - 6;
+        const stateIdx = ALL_STATES.findIndex(
+          s => s.n === n && s.l === l && s.m === m && s.ms === ms);
+        const occupied = fermionsOccupied.includes(stateIdx);
+
+        // Box
+        ctx.strokeStyle = occupied ? '#0065bd' : '#2a3d55';
+        ctx.lineWidth = occupied ? 1.5 : 1;
+        ctx.fillStyle = occupied ? 'rgba(0,101,189,0.18)' : 'rgba(20,30,50,0.5)';
+        ctx.beginPath();
+        ctx.roundRect(bx, by, boxW, boxH, 4);
+        ctx.fill();
+        ctx.stroke();
+
+        // ms label
+        ctx.fillStyle = occupied ? '#5ba3d9' : '#334455';
+        ctx.font = 'bold 12px Segoe UI, Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(ms > 0 ? '↑' : '↓', bx + boxW/2, by + boxH/2 + 5);
+
+        // Electron circle if occupied
+        if (occupied) {
+          ctx.beginPath();
+          ctx.arc(bx + boxW/2, by + boxH/2, 8, 0, 2*Math.PI);
+          ctx.fillStyle = '#0065bd';
+          ctx.fill();
+          ctx.fillStyle = '#fff';
+          ctx.font = 'bold 9px Segoe UI, Arial, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('e⁻', bx + boxW/2, by + boxH/2 + 3);
+        }
+      });
+    });
+  }
+
+  // "Continuum" line at top
+  ctx.strokeStyle = '#334';
+  ctx.setLineDash([4,4]);
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(MARGIN_L, TOP); ctx.lineTo(CW-MARGIN_R, TOP); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#445';
+  ctx.font = '10px Segoe UI, Arial, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('E = 0 (ionisiert)', MARGIN_L + 4, TOP - 4);
+
+  // Pauli flash if needed
+  if (fermionBlocked) {
+    drawBlockedFlash(ctx);
+  }
+}
+
+// ── Draw boson building ───────────────────────────────────────────────────
+function drawBosons() {
+  const ctx = ctxB;
+  ctx.fillStyle = '#0a0e1a';
+  ctx.fillRect(0, 0, CW, CH);
+
+  for (let n = 1; n <= 3; n++) {
+    const y = energyToY(n);
+    const count = bosonsLevel[n] || 0;
+
+    // Energy label
+    ctx.fillStyle = '#8899aa';
+    ctx.font = '11px Segoe UI, Arial, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(`n=${n}`, MARGIN_L - 8, y + 4);
+    ctx.fillStyle = '#445566';
+    ctx.font = '10px Segoe UI, Arial, sans-serif';
+    ctx.fillText(`E=${(-13.6/n/n).toFixed(2)} eV`, MARGIN_L - 8, y + 16);
+
+    // Level line
+    ctx.strokeStyle = count > 0 ? '#b07d00' : '#2a3d55';
+    ctx.lineWidth = count > 0 ? 2 : 1;
+    ctx.beginPath();
+    ctx.moveTo(MARGIN_L, y);
+    ctx.lineTo(CW - MARGIN_R, y);
+    ctx.stroke();
+
+    // Label: no restriction on quantum numbers
+    ctx.fillStyle = '#55442a';
+    ctx.font = '9px Segoe UI, Arial, sans-serif';
+    ctx.textAlign = 'center';
+    const cx = (MARGIN_L + CW - MARGIN_R) / 2;
+    ctx.fillText('beliebig viele Bosonen erlaubt', cx, y - 30);
+
+    // Draw boson circles stacked on the level
+    const r = 11;
+    const maxPerRow = Math.floor((CW - MARGIN_L - MARGIN_R - 10) / (2*r + 4));
+    for (let i = 0; i < count; i++) {
+      const row = Math.floor(i / maxPerRow);
+      const col = i % maxPerRow;
+      const bx = MARGIN_L + 10 + col * (2*r + 4) + r;
+      const by = y - r - 4 - row * (2*r + 4);
+      ctx.beginPath();
+      ctx.arc(bx, by, r, 0, 2*Math.PI);
+      ctx.fillStyle = '#b07d00';
+      ctx.fill();
+      ctx.strokeStyle = '#f0c040';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 8px Segoe UI, Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('B', bx, by + 3);
+    }
+
+    // Count label
+    if (count > 0) {
+      ctx.fillStyle = '#f0c040';
+      ctx.font = 'bold 12px Segoe UI, Arial, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText(`×${count}`, CW - MARGIN_R - 4, y - 6);
+    }
+  }
+
+  // Continuum
+  ctx.strokeStyle = '#334';
+  ctx.setLineDash([4,4]);
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(MARGIN_L, TOP); ctx.lineTo(CW-MARGIN_R, TOP); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#445';
+  ctx.font = '10px Segoe UI, Arial, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('E = 0 (ionisiert)', MARGIN_L + 4, TOP - 4);
+}
+
+// ── Pauli block flash ─────────────────────────────────────────────────────
+let fermionBlocked = false;
+let blockTimer = null;
+
+function flashBlock() {
+  fermionBlocked = true;
+  drawFermions();
+  if (blockTimer) clearTimeout(blockTimer);
+  blockTimer = setTimeout(() => {
+    fermionBlocked = false;
+    drawFermions();
+  }, 1200);
+}
+
+function drawBlockedFlash(ctx) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(231,76,60,0.10)';
+  ctx.fillRect(0, 0, CW, CH);
+  ctx.fillStyle = '#e74c3c';
+  ctx.font = 'bold 15px Segoe UI, Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('⊗  Pauli-Prinzip! ψ = 0', CW/2, CH/2 - 10);
+  ctx.font = '12px Segoe UI, Arial, sans-serif';
+  ctx.fillStyle = '#e87060';
+  ctx.fillText('Kein freier Zustand — alle (n,ℓ,m,mₛ) besetzt', CW/2, CH/2 + 12);
+  ctx.restore();
+}
+
+// ── Messages ──────────────────────────────────────────────────────────────
+function updateMsgF() {
+  const n = fermionsOccupied.length;
+  const el = document.getElementById('msgF');
+  const maxStates = ALL_STATES.length; // 2*(1+4+9)=28
+  if (n === 0) {
+    el.textContent = 'Noch keine Elektronen. Jeder Zustand (n,ℓ,m,mₛ) kann max. 1 Elektron tragen.';
+    el.className = 'msg blue';
+  } else if (n <= 2) {
+    el.textContent = `n=1: ${n}/2 Elektronen. 1s-Schale füllt sich — zwei Plätze wegen mₛ=±½.`;
+    el.className = 'msg blue';
+  } else if (n <= 10) {
+    el.textContent = `${n} Elektronen. n=1 voll → n=2 beginnt. Pauli erzwingt den Aufbau.`;
+    el.className = 'msg blue';
+  } else if (n < maxStates) {
+    el.textContent = `${n} Elektronen — n=3 Schale füllt sich. So entsteht die Schalenstruktur!`;
+    el.className = 'msg blue';
+  } else {
+    el.textContent = 'Alle Zustände (n=1,2,3) besetzt. Nächstes Elektron: n=4 nötig.';
+    el.className = 'msg blue';
+  }
+}
+
+function updateMsgB() {
+  const total = Object.values(bosonsLevel).reduce((a,b)=>a+b,0);
+  const el = document.getElementById('msgB');
+  const n1 = bosonsLevel[1]||0;
+  if (total === 0) {
+    el.textContent = 'Noch keine Bosonen. Kein Pauli-Prinzip — beliebig viele pro Zustand erlaubt.';
+    el.className = 'msg gold';
+  } else if (total < 5) {
+    el.textContent = `${total} Bosonen — alle im Grundzustand n=1. Energetisch bevorzugt, kein Verbot.`;
+    el.className = 'msg gold';
+  } else if (total < 12) {
+    el.textContent = `${total} Bosonen im Grundzustand — das ist Bose-Einstein-Kondensation in Miniatur!`;
+    el.className = 'msg gold';
+  } else {
+    el.textContent = `${n1} Bosonen in n=1 — makroskopische Besetzung eines Zustands: BEC.`;
+    el.className = 'msg gold';
+  }
+}
+
+// ── Add particles ─────────────────────────────────────────────────────────
+function addFermion() {
+  // Find next unoccupied state (in order of energy, then l, m, ms)
+  const nextIdx = ALL_STATES.findIndex((s, i) => !fermionsOccupied.includes(i));
+  if (nextIdx === -1) {
+    flashBlock();
+    return;
+  }
+  fermionsOccupied.push(nextIdx);
+  drawFermions();
+  updateMsgF();
+  animateEntry(ctxF, getStateBoxPos(nextIdx), '#0065bd');
+}
+
+function getStateBoxPos(idx) {
+  const s = ALL_STATES[idx];
+  const y = energyToY(s.n);
+  // find group index
+  const substates = ALL_STATES.filter(st => st.n === s.n);
+  const groups = {};
+  for (const st of substates) {
+    const key = `${st.l},${st.m}`;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(st);
+  }
+  const groupKeys = Object.keys(groups);
+  const nGroups = groupKeys.length;
+  const availW = CW - MARGIN_L - MARGIN_R;
+  const groupW = availW / nGroups;
+  const gi = groupKeys.indexOf(`${s.l},${s.m}`);
+  const gx = MARGIN_L + gi * groupW + groupW / 2;
+  const mi = s.ms > 0 ? 0 : 1;
+  const boxW = 26, boxH = 22;
+  const bx = gx + (mi === 0 ? -boxW/2 - 2 : 2);
+  const by = y - boxH - 6;
+  return { x: bx + boxW/2, y: by + boxH/2 };
+}
+
+function addBoson() {
+  // All bosons pile into n=1 (ground state)
+  bosonsLevel[1] = (bosonsLevel[1] || 0) + 1;
+  drawBosons();
+  updateMsgB();
+}
+
+function animateEntry(ctx, pos, color) {
+  let frame = 0;
+  function anim() {
+    if (frame > 16) return;
+    const f = frame / 16;
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, 20 * (1-f), 0, 2*Math.PI);
+    ctx.strokeStyle = color.replace(')', `,${0.8*(1-f)})`).replace('rgb','rgba');
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    frame++;
+    requestAnimationFrame(anim);
+  }
+  anim();
+}
+
+function reset() {
+  fermionsOccupied = [];
+  bosonsLevel = {};
+  fermionBlocked = false;
+  drawFermions();
+  drawBosons();
+  updateMsgF();
+  updateMsgB();
+}
+
+document.getElementById('btnAddF').addEventListener('click', addFermion);
+document.getElementById('btnAddB').addEventListener('click', addBoson);
+document.getElementById('btnReset').addEventListener('click', reset);
+
+// Init
+drawFermions();
+drawBosons();
+updateMsgF();
+updateMsgB();
+</script>
+</body>
+</html>

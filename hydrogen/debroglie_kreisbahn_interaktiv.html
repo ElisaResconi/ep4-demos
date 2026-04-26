@@ -1,0 +1,160 @@
+
+<style>
+.ctrl { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+.ctrl label { font-size:13px; color:var(--color-text-secondary); min-width:24px; }
+.ctrl input[type=range] { flex:1; }
+.val { font-size:15px; font-weight:500; min-width:40px; }
+.status { font-size:14px; font-weight:500; padding:6px 14px; border-radius:var(--border-radius-md); display:inline-block; }
+.ok  { background:#E1F5EE; color:#085041; }
+.bad { background:#FCEBEB; color:#791F1F; }
+.formula { font-size:13px; color:var(--color-text-secondary); margin-top:6px; }
+.formula span { font-weight:500; color:var(--color-text-primary); }
+</style>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; padding:8px 0;">
+
+<div>
+  <canvas id="cv" width="300" height="300" style="width:100%;border-radius:var(--border-radius-md);"></canvas>
+</div>
+
+<div style="padding-top:8px;">
+  <div class="ctrl">
+    <label>n</label>
+    <input type="range" id="nSlider" min="0.5" max="5" step="0.05" value="1">
+    <span class="val" id="nVal">1.00</span>
+  </div>
+
+  <div style="margin:10px 0 14px;">
+    <span id="statusBadge" class="status ok">erlaubt</span>
+  </div>
+
+  <div class="formula">Randbedingung: ψ(φ + 2π) = ψ(φ)</div>
+  <div class="formula" style="margin-top:4px;">2πr = n · λ,&nbsp;&nbsp; λ = h/p</div>
+  <div class="formula" style="margin-top:4px;">→ p·r = n·ħ</div>
+  <div class="formula" style="margin-top:8px; font-size:15px;"><span id="Lformula">L = 1 · ħ</span></div>
+
+  <div style="margin-top:18px; border-top:0.5px solid var(--color-border-tertiary); padding-top:14px;">
+    <div style="font-size:12px; color:var(--color-text-tertiary); margin-bottom:8px;">Springe zu ganzzahligem n:</div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button onclick="setN(1)">n = 1</button>
+      <button onclick="setN(2)">n = 2</button>
+      <button onclick="setN(3)">n = 3</button>
+      <button onclick="setN(4)">n = 4</button>
+      <button onclick="setN(2.4)">n = 2.4</button>
+      <button onclick="setN(1.7)">n = 1.7</button>
+    </div>
+  </div>
+
+  <div style="margin-top:16px; border-top:0.5px solid var(--color-border-tertiary); padding-top:12px; font-size:12px; color:var(--color-text-tertiary); line-height:1.6;">
+    Blaue Welle: ψ(φ) = A·sin(n·φ)<br>
+    Roter Punkt: Sprung bei φ = 2π wenn n ∉ ℤ
+  </div>
+</div>
+</div>
+
+<script>
+const canvas = document.getElementById('cv');
+const ctx = canvas.getContext('2d');
+const slider = document.getElementById('nSlider');
+const nValEl = document.getElementById('nVal');
+const statusEl = document.getElementById('statusBadge');
+const Lel = document.getElementById('Lformula');
+
+const W = 300, H = 300;
+const cx = W/2, cy = H/2;
+const R = 105, amp = 18;
+const STEPS = 720;
+
+function isInt(n) { return Math.abs(n - Math.round(n)) < 0.04; }
+
+function draw(n) {
+  ctx.clearRect(0,0,W,H);
+
+  const dark = window.matchMedia('(prefers-color-scheme:dark)').matches;
+  const colOrbit  = dark ? 'rgba(150,160,180,0.25)' : 'rgba(100,110,140,0.18)';
+  const colWave   = isInt(n) ? '#185FA5' : '#E24B4A';
+  const colCenter = dark ? 'rgba(200,200,200,0.5)' : 'rgba(80,80,80,0.4)';
+  const colPlane  = dark ? 'rgba(55,138,221,0.08)' : '#E6F1FB';
+
+  ctx.fillStyle = colPlane;
+  ctx.beginPath();
+  ctx.arc(cx,cy,R+amp+4,0,2*Math.PI);
+  ctx.fill();
+
+  ctx.strokeStyle = colOrbit;
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([5,4]);
+  ctx.beginPath();
+  ctx.arc(cx,cy,R,0,2*Math.PI);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  const pts = [];
+  for(let i=0; i<=STEPS; i++){
+    const phi = (i/STEPS)*2*Math.PI;
+    const r = R + amp*Math.sin(n*phi);
+    pts.push([cx + r*Math.cos(phi), cy - r*Math.sin(phi)]);
+  }
+
+  ctx.strokeStyle = colWave;
+  ctx.lineWidth = 2.8;
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for(let i=1; i<pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+  ctx.stroke();
+
+  ctx.fillStyle = colCenter;
+  ctx.beginPath();
+  ctx.arc(cx,cy,4,0,2*Math.PI);
+  ctx.fill();
+
+  const isOk = isInt(n);
+
+  if(!isOk){
+    const p0 = pts[0], pN = pts[STEPS];
+    ctx.strokeStyle = '#E24B4A';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4,3]);
+    ctx.beginPath();
+    ctx.moveTo(p0[0],p0[1]);
+    ctx.lineTo(pN[0],pN[1]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = '#185FA5';
+    ctx.beginPath();
+    ctx.arc(p0[0],p0[1],5.5,0,2*Math.PI);
+    ctx.fill();
+
+    ctx.fillStyle = '#E24B4A';
+    ctx.beginPath();
+    ctx.arc(pN[0],pN[1],5.5,0,2*Math.PI);
+    ctx.fill();
+
+    ctx.fillStyle = '#A32D2D';
+    ctx.font = '600 13px Helvetica,Arial,sans-serif';
+    ctx.fillText('Sprung!', pN[0]+8, pN[1]-6);
+  }
+
+  const nR = Math.round(n*100)/100;
+  nValEl.textContent = nR.toFixed(2);
+
+  if(isOk){
+    statusEl.className='status ok';
+    statusEl.textContent='erlaubt — stehende Welle';
+    Lel.innerHTML = '<span>L = '+Math.round(n)+' · ħ</span>';
+  } else {
+    statusEl.className='status bad';
+    statusEl.textContent='nicht erlaubt — Sprung!';
+    Lel.innerHTML = '<span style="color:var(--color-text-danger)">kein stationärer Zustand</span>';
+  }
+}
+
+function setN(val){
+  slider.value = val;
+  draw(parseFloat(val));
+}
+
+slider.addEventListener('input', ()=>draw(parseFloat(slider.value)));
+draw(1);
+</script>

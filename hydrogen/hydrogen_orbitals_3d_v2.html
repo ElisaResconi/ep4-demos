@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wasserstoff-Orbitale 3D — EP4</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#04060f;color:#c8d8e8;font-family:'JetBrains Mono',monospace;overflow:hidden;width:100vw;height:100vh}
+#canvas-container{position:absolute;inset:0}
+canvas{display:block}
+
+/* Header */
+#header{position:absolute;top:0;left:0;right:0;padding:14px 20px;
+  background:linear-gradient(to bottom,rgba(4,6,15,0.95),transparent);
+  display:flex;align-items:flex-start;justify-content:space-between;pointer-events:none;z-index:10}
+#title-block .main{font-size:15px;font-weight:600;letter-spacing:0.06em;color:#e0eaf8}
+#title-block .sub{font-size:11px;color:#6080a0;margin-top:2px;font-weight:300;font-style:italic;font-family:'Crimson Pro',serif;letter-spacing:0.03em}
+#qn-display{text-align:right}
+#qn-display .qn{font-size:13px;color:#90b8d8;font-weight:300;letter-spacing:0.05em}
+#qn-display .En{font-size:11px;color:#507090;margin-top:3px}
+#qn-display .nodes{font-size:10px;color:#405060;margin-top:2px}
+
+/* Orbital selector */
+#selector{position:absolute;left:0;top:0;bottom:0;width:260px;
+  background:rgba(4,6,15,0.92);border-right:1px solid #0d1a2e;
+  display:flex;flex-direction:column;gap:0;overflow-y:auto;z-index:10;
+  padding-top:70px}
+#selector::-webkit-scrollbar{width:3px}
+#selector::-webkit-scrollbar-track{background:transparent}
+#selector::-webkit-scrollbar-thumb{background:#1e3050;border-radius:2px}
+
+.n-group{margin-bottom:0}
+.n-label{font-size:9px;letter-spacing:0.12em;color:#304050;
+  padding:8px 14px 4px;border-top:1px solid #0d1a2e;text-transform:uppercase}
+.orb-btn{display:block;width:100%;text-align:left;padding:7px 14px;
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  background:transparent;border:none;cursor:pointer;
+  color:#5070a0;transition:all 0.15s;letter-spacing:0.04em;border-left:2px solid transparent}
+.orb-btn:hover{color:#90b8d8;background:rgba(20,40,80,0.3)}
+.orb-btn.active{color:#a8d4f8;background:rgba(0,80,160,0.15);border-left-color:#0065bd}
+.orb-btn .formula{font-size:9px;color:#304050;margin-top:1px;display:block}
+
+/* Formula box in left panel */
+#formula-section{padding:10px 14px;border-top:1px solid #0d1a2e}
+#formula-section .fs-title{font-size:9px;letter-spacing:0.1em;color:#304050;
+  text-transform:uppercase;margin-bottom:8px}
+#formula-section .fs-label{font-size:9px;color:#405060;margin-bottom:2px;margin-top:6px}
+#formula-section .fs-eq{font-size:11px;color:#7ab0d8;font-family:'Crimson Pro',Georgia,serif;
+  font-style:italic;line-height:1.5;padding:4px 6px;background:rgba(0,50,100,0.12);
+  border-radius:3px;border-left:2px solid #0d3a6a}
+
+/* Bottom controls */
+#controls{position:absolute;bottom:0;left:260px;right:0;
+  padding:12px 20px;background:linear-gradient(to top,rgba(4,6,15,0.95),transparent);
+  display:flex;align-items:center;gap:16px;z-index:10;pointer-events:all}
+.ctrl-item{display:flex;align-items:center;gap:8px;font-size:11px;color:#507090}
+.ctrl-item label{white-space:nowrap;color:#406080}
+input[type=range]{width:100px;accent-color:#0065bd;cursor:pointer}
+.ctrl-val{color:#90b8d8;font-weight:600;min-width:30px}
+.sep{width:1px;height:20px;background:#0d1a2e;flex-shrink:0}
+#hint{font-size:10px;color:#304050;font-style:italic;font-family:'Crimson Pro',serif;margin-left:auto}
+
+/* Info panel */
+#info-panel{position:absolute;right:16px;top:70px;width:160px;
+  background:rgba(4,6,15,0.88);border:1px solid #0d1a2e;border-radius:8px;
+  padding:12px;z-index:10;font-size:10px;color:#507090}
+#info-panel .row{display:flex;justify-content:space-between;margin-bottom:5px;align-items:center}
+#info-panel .k{color:#304050}
+#info-panel .v{color:#90b8d8;font-weight:600}
+#info-panel hr{border:none;border-top:1px solid #0d1a2e;margin:7px 0}
+#info-panel .formula-box{font-size:9px;color:#406080;line-height:1.6;text-align:center;
+  background:rgba(0,50,100,0.1);border-radius:4px;padding:5px;margin-top:4px}
+
+/* Color legend */
+#color-legend{position:absolute;right:16px;top:310px;width:160px;
+  background:rgba(4,6,15,0.88);border:1px solid #0d1a2e;border-radius:8px;
+  padding:12px;z-index:10;font-size:10px;color:#507090}
+.legend-title{font-size:11px;color:#90b8d8;font-weight:600;letter-spacing:0.06em;margin-bottom:2px}
+.legend-sub{font-size:9px;color:#304050;margin-bottom:10px;font-style:italic;font-family:'Crimson Pro',serif}
+.legend-bar-wrap{display:flex;gap:8px;align-items:stretch;margin-bottom:10px}
+.legend-labels{display:flex;flex-direction:column;justify-content:space-between;
+  font-size:9px;color:#405060;padding:2px 0}
+.leg-hi{color:#90e0ef}.leg-mid{color:#0065bd}.leg-lo{color:#1e2d45}
+#legend-canvas{border-radius:3px;border:1px solid #1e2d45}
+.legend-note{font-size:9px;color:#405060;line-height:1.65}
+.note-bright{color:#90e0ef}.note-mid{color:#0065bd}.note-dark{color:#304050}
+
+/* Projection panels — bottom right */
+#projections{position:absolute;right:16px;bottom:60px;width:160px;
+  display:flex;flex-direction:column;gap:8px;z-index:10}
+.proj-panel{background:rgba(4,6,15,0.88);border:1px solid #0d1a2e;
+  border-radius:8px;padding:9px}
+.proj-title{font-size:9px;color:#507090;letter-spacing:0.08em;
+  text-transform:uppercase;margin-bottom:5px}
+.proj-title span{color:#90b8d8}
+.proj-canvas{display:block;border-radius:4px;background:#000010}
+.proj-eq{font-size:8px;color:#304050;text-align:center;
+  margin-top:4px;font-style:italic;font-family:'Crimson Pro',serif}
+
+/* Color mode toggle */
+#color-mode{position:absolute;top:54px;left:50%;transform:translateX(-50%);
+  display:flex;gap:6px;z-index:15;background:rgba(4,6,15,0.85);
+  border:1px solid #0d1a2e;border-radius:8px;padding:5px 8px}
+.cm-btn{font-family:'JetBrains Mono',monospace;font-size:10px;
+  padding:5px 12px;border-radius:5px;border:1px solid #1e2d45;
+  cursor:pointer;background:transparent;letter-spacing:0.05em;
+  transition:all 0.18s;white-space:nowrap}
+.cm-btn:hover{border-color:#0065bd;color:#90b8d8}
+.cm-btn.active-prob{background:rgba(0,101,189,0.25);border-color:#0065bd;color:#90e0ef}
+.cm-btn.active-sign{background:rgba(160,40,40,0.2);border-color:#c04040;color:#f09090}
+.cm-btn.active-phase{background:rgba(80,0,120,0.25);border-color:#8040c0;color:#c090f0}
+.cm-sep{width:1px;background:#1e2d45;align-self:stretch}
+
+/* Loading */
+#loading{position:absolute;inset:0;left:260px;display:flex;align-items:center;justify-content:center;
+  background:rgba(4,6,15,0.9);z-index:20;flex-direction:column;gap:10px}
+#loading .txt{font-size:12px;color:#507090;letter-spacing:0.1em}
+#loading .bar{width:120px;height:2px;background:#0d1a2e;border-radius:1px;overflow:hidden}
+#loading .fill{height:100%;background:#0065bd;width:0%;transition:width 0.1s}
+</style>
+</head>
+<body>
+
+<!-- color mode removed - density only -->
+
+<div id="canvas-container"></div>
+
+<div id="header">
+  <div id="title-block">
+    <div class="main">WASSERSTOFF-ATOM — |ψ<sub>nℓm</sub>(r)|²</div>
+    <div class="sub">Exakte Lösung der Schrödinger-Gleichung · 3D Punktwolke · TUM EP4 2026</div>
+  </div>
+  <div id="qn-display">
+    <div class="qn" id="qn-text">n=1, ℓ=0, m=0</div>
+    <div class="En" id="En-text">E₁ = −13.60 eV</div>
+    <div class="nodes" id="nodes-text">0 radiale · 0 angulare Knoten</div>
+  </div>
+</div>
+
+<!-- Orbital selector -->
+<div id="selector">
+  <div class="n-group">
+    <div class="n-label">n = 1 · E = −13.60 eV</div>
+    <button class="orb-btn active" data-n="1" data-l="0" data-m="0">
+      ψ₁s
+      <span class="formula">(1,0,0)</span>
+    </button>
+  </div>
+  <div class="n-group">
+    <div class="n-label">n = 2 · E = −3.40 eV</div>
+    <button class="orb-btn" data-n="2" data-l="0" data-m="0">ψ₂s<span class="formula">(2,0,0)</span></button>
+    <button class="orb-btn" data-n="2" data-l="1" data-m="0">ψ₂p₀<span class="formula">(2,1,0)</span></button>
+    <button class="orb-btn" data-n="2" data-l="1" data-m="1">ψ₂p₁<span class="formula">(2,1,±1)</span></button>
+  </div>
+  <div class="n-group">
+    <div class="n-label">n = 3 · E = −1.51 eV</div>
+    <button class="orb-btn" data-n="3" data-l="0" data-m="0">ψ₃s<span class="formula">(3,0,0)</span></button>
+    <button class="orb-btn" data-n="3" data-l="1" data-m="0">ψ₃p₀<span class="formula">(3,1,0)</span></button>
+    <button class="orb-btn" data-n="3" data-l="1" data-m="1">ψ₃p₁<span class="formula">(3,1,±1)</span></button>
+    <button class="orb-btn" data-n="3" data-l="2" data-m="0">ψ₃d₀<span class="formula">(3,2,0)</span></button>
+    <button class="orb-btn" data-n="3" data-l="2" data-m="1">ψ₃d₁<span class="formula">(3,2,±1)</span></button>
+    <button class="orb-btn" data-n="3" data-l="2" data-m="2">ψ₃d₂<span class="formula">(3,2,±2)</span></button>
+  </div>
+  <div class="n-group">
+    <div class="n-label">n = 4 · E = −0.85 eV</div>
+    <button class="orb-btn" data-n="4" data-l="0" data-m="0">ψ₄s<span class="formula">(4,0,0)</span></button>
+    <button class="orb-btn" data-n="4" data-l="1" data-m="0">ψ₄p₀<span class="formula">(4,1,0)</span></button>
+    <button class="orb-btn" data-n="4" data-l="2" data-m="0">ψ₄d₀<span class="formula">(4,2,0)</span></button>
+    <button class="orb-btn" data-n="4" data-l="3" data-m="0">ψ₄f₀<span class="formula">(4,3,0)</span></button>
+    <button class="orb-btn" data-n="4" data-l="3" data-m="1">ψ₄f₁<span class="formula">(4,3,±1)</span></button>
+    <button class="orb-btn" data-n="4" data-l="3" data-m="2">ψ₄f₂<span class="formula">(4,3,±2)</span></button>
+  </div>
+
+  <!-- Analytical formula section -->
+  <div id="formula-section">
+    <div class="fs-title">Exakte Lösung |ψ<sub>nℓm</sub>|²</div>
+    <div class="fs-label">Vollständige Wellenfunktion:</div>
+    <div class="fs-eq">ψ<sub>nℓm</sub> = R<sub>nℓ</sub>(r) · Y<sub>ℓ</sub><sup>m</sup>(θ,φ)</div>
+    <div class="fs-label">Radialanteil R<sub>nℓ</sub>(r):</div>
+    <div class="fs-eq" id="fs-radial">2·e<sup>−r/a₀</sup></div>
+    <div class="fs-label">Winkelanteil Y<sub>ℓ</sub><sup>m</sup>(θ,φ):</div>
+    <div class="fs-eq" id="fs-angular">1/√(4π)</div>
+    <div class="fs-label">Dichte |ψ|² ∝</div>
+    <div class="fs-eq" id="fs-density">e<sup>−2r/a₀</sup></div>
+  </div>
+</div>
+
+<!-- Info panel -->
+<div id="info-panel">
+  <div class="row"><span class="k">n</span><span class="v" id="ip-n">1</span></div>
+  <div class="row"><span class="k">ℓ</span><span class="v" id="ip-l">0</span></div>
+  <div class="row"><span class="k">m</span><span class="v" id="ip-m">0</span></div>
+  <div class="row"><span class="k">E_n</span><span class="v" id="ip-E">−13.60 eV</span></div>
+  <hr>
+  <div class="row"><span class="k">Knoten radial</span><span class="v" id="ip-kr">0</span></div>
+  <div class="row"><span class="k">Knoten angular</span><span class="v" id="ip-ka">0</span></div>
+  <div class="row"><span class="k">Punkte</span><span class="v" id="ip-pts">—</span></div>
+  <hr>
+  <div class="formula-box" id="ip-formula">
+    ψ = R₁₀(r) · Y₀⁰(θ,φ)
+  </div>
+</div>
+
+<!-- Color legend -->
+<div id="color-legend">
+  <div class="legend-title">Farbe = |ψ|²</div>
+  <div class="legend-sub">Aufenthaltswahrscheinlichkeit</div>
+  <div class="legend-bar-wrap">
+    <canvas id="legend-canvas" width="22" height="130"></canvas>
+    <div class="legend-labels">
+      <span class="leg-hi">hoch</span>
+      <span class="leg-mid">·</span>
+      <span class="leg-lo">null</span>
+    </div>
+  </div>
+  <div class="legend-note">
+    <span class="note-bright">■ Weiß/Cyan:</span> hohes |ψ|²<br>
+    Elektron oft hier gefunden<br><br>
+    <span class="note-mid">■ Blau:</span> mittleres |ψ|²<br><br>
+    <span class="note-dark">■ Schwarz:</span> |ψ|² ≈ 0<br>
+    Knotenebene — Elektron<br>
+    <em>nie</em> hier gefunden<br><br>
+    Jeder Punkt = ein<br>
+    möglicher Messort,<br>
+    gesampelt aus |ψ|²
+  </div>
+</div>
+
+<!-- Projection panels -->
+<div id="projections">
+  <div class="proj-panel">
+    <div class="proj-title">Radialanteil · <span>r²|R_nℓ(r)|²</span></div>
+    <canvas class="proj-canvas" id="cvRadial" width="142" height="90"></canvas>
+    <div class="proj-eq" id="eq-radial">P(r) = r²·R₁₀²(r)</div>
+  </div>
+  <div class="proj-panel">
+    <div class="proj-title">Winkelanteil · <span>|Y_ℓm(θ)|²</span></div>
+    <canvas class="proj-canvas" id="cvAngular" width="142" height="110"></canvas>
+    <div class="proj-eq" id="eq-angular">|Y₀⁰(θ,φ)|² = 1/4π</div>
+  </div>
+</div>
+
+<!-- Controls -->
+<div id="controls">
+  <div class="ctrl-item">
+    <label>Punkte</label>
+    <input type="range" id="slPts" min="5000" max="60000" step="5000" value="25000">
+    <span class="ctrl-val" id="valPts">25k</span>
+  </div>
+  <div class="sep"></div>
+  <div class="ctrl-item">
+    <label>Größe</label>
+    <input type="range" id="slSize" min="1" max="8" step="0.5" value="2.5">
+    <span class="ctrl-val" id="valSize">2.5</span>
+  </div>
+  <div class="sep"></div>
+  <div class="ctrl-item">
+    <label>Helligkeit</label>
+    <input type="range" id="slBright" min="0.2" max="2" step="0.1" value="0.8">
+    <span class="ctrl-val" id="valBright">0.8</span>
+  </div>
+  <div class="sep"></div>
+  <div class="ctrl-item">
+    <label>Auto-Rotation</label>
+    <input type="range" id="slRot" min="0" max="3" step="0.1" value="0.3">
+    <span class="ctrl-val" id="valRot">0.3</span>
+  </div>
+  <div class="sep"></div>
+  <div id="hint">Maus: drehen · Rad: zoom</div>
+</div>
+
+<!-- Loading -->
+<div id="loading">
+  <div class="txt">BERECHNE |ψ|²...</div>
+  <div class="bar"><div class="fill" id="load-fill"></div></div>
+</div>
+
+<script>
+// ── Quantum chemistry — exact H atom wavefunctions ────────────────────────
+
+function factorial(n) {
+  if(n<=1) return 1;
+  let r=1; for(let i=2;i<=n;i++) r*=i; return r;
+}
+
+// Associated Laguerre polynomial L^alpha_n(x)
+function laguerre(n, alpha, x) {
+  if(n===0) return 1;
+  if(n===1) return 1+alpha-x;
+  let Lm1=1, L=1+alpha-x;
+  for(let k=1;k<n;k++){
+    const tmp=((2*k+1+alpha-x)*L-(k+alpha)*Lm1)/(k+1);
+    Lm1=L; L=tmp;
+  }
+  return L;
+}
+
+// Associated Legendre polynomial P^m_l(x), m>=0
+function legendreP(l, m, x) {
+  const am=Math.abs(m);
+  let pmm=1;
+  if(am>0){
+    const sx=Math.sqrt(Math.max(0,(1-x)*(1+x)));
+    let fact=1;
+    for(let i=1;i<=am;i++){pmm*=-fact*sx;fact+=2;}
+  }
+  if(l===am) return pmm;
+  let pmmp1=x*(2*am+1)*pmm;
+  if(l===am+1) return pmmp1;
+  let pll=0;
+  for(let ll=am+2;ll<=l;ll++){
+    pll=(x*(2*ll-1)*pmmp1-(ll+am-1)*pmm)/(ll-am);
+    pmm=pmmp1; pmmp1=pll;
+  }
+  return pll;
+}
+
+// Real spherical harmonic Y_lm (real-valued combination)
+function Ylm_real(l, m, theta, phi) {
+  const am=Math.abs(m);
+  const cosT=Math.cos(theta);
+  const P=legendreP(l,am,cosT);
+  const norm=Math.sqrt((2*l+1)/(4*Math.PI)*factorial(l-am)/factorial(l+am));
+  if(m===0) return norm*P;
+  if(m>0)  return norm*P*Math.SQRT2*Math.cos(m*phi);
+  return     norm*P*Math.SQRT2*Math.sin(am*phi);
+}
+
+// Radial wavefunction R_nl(r)
+function R_nl(n, l, r) {
+  const rho=2*r/n;
+  const norm=Math.sqrt(Math.pow(2/n,3)*factorial(n-l-1)/(2*n*Math.pow(factorial(n+l),3)));
+  return norm*Math.exp(-rho/2)*Math.pow(rho,l)*laguerre(n-l-1,2*l+1,rho);
+}
+
+// |psi_nlm|^2 at Cartesian point
+function psi2(n, l, m, x, y, z) {
+  const r=Math.sqrt(x*x+y*y+z*z)+1e-14;
+  const theta=Math.acos(Math.max(-1,Math.min(1,z/r)));
+  const phi=Math.arctan2?Math.arctan2(y,x):Math.atan2(y,x);
+  const R=R_nl(n,l,r);
+  const Y=Ylm_real(l,m,theta,phi);
+  return R*R*Y*Y;
+}
+
+// ── Rejection sampling — build point cloud ────────────────────────────────
+// Uses inverse CDF for radial coordinate (fast!) + rejection for angular
+let cloudData = null;
+
+// Build cumulative radial CDF for fast sampling
+function buildRadialCDF(n, l, Nr=800) {
+  const rmax = (n*n*(n+2)) * 2.8;
+  const dr = rmax / Nr;
+  const cdf = new Float64Array(Nr+1);
+  const rs  = new Float64Array(Nr);
+  cdf[0] = 0;
+  for (let i = 0; i < Nr; i++) {
+    const r = (i + 0.5) * dr;
+    rs[i] = r;
+    const R = R_nl(n, l, r);
+    cdf[i+1] = cdf[i] + r*r * R*R * dr;
+  }
+  // Normalize
+  const total = cdf[Nr];
+  for (let i = 0; i <= Nr; i++) cdf[i] /= total;
+  return {cdf, rs, rmax, dr};
+}
+
+// Sample r from radial CDF via binary search
+function sampleRadial(cdf, rs, rmax) {
+  const u = Math.random();
+  let lo = 0, hi = cdf.length - 2;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (cdf[mid+1] < u) lo = mid + 1; else hi = mid;
+  }
+  // Linear interpolation within bin
+  const t = (u - cdf[lo]) / (cdf[lo+1] - cdf[lo] + 1e-30);
+  return rs[lo] + t * (rs[lo] || 0.1);
+}
+
+// Build angular CDF for given l,m on theta grid
+function buildAngularCDF(l, m, Nth=200) {
+  const dth = Math.PI / Nth;
+  const cdf = new Float64Array(Nth+1);
+  const ths = new Float64Array(Nth);
+  cdf[0] = 0;
+  for (let i = 0; i < Nth; i++) {
+    const theta = (i + 0.5) * dth;
+    ths[i] = theta;
+    const Y = Ylm_real(l, m, theta, 0);
+    // Integrate over phi: |Y|^2 integrated over phi gives |Y_lm|^2 * 2pi (for m=0)
+    // or pi * (normalization already includes 1/2pi from real combination)
+    cdf[i+1] = cdf[i] + Y*Y * Math.sin(theta) * dth;
+  }
+  const total = cdf[Nth];
+  for (let i = 0; i <= Nth; i++) cdf[i] /= (total || 1);
+  return {cdf, ths};
+}
+
+function sampleTheta(cdf, ths) {
+  const u = Math.random();
+  let lo = 0, hi = cdf.length - 2;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (cdf[mid+1] < u) lo = mid + 1; else hi = mid;
+  }
+  const t = (u - cdf[lo]) / (cdf[lo+1] - cdf[lo] + 1e-30);
+  return ths[lo] + t * (Math.PI / ths.length);
+}
+
+function buildPointCloud(n, l, m, Npts, onProgress) {
+  const rmax = (n*n*(n+2)) * 2.8;
+
+  // Build CDFs
+  const radCDF = buildRadialCDF(n, l);
+  const angCDF = buildAngularCDF(l, m);
+
+  // For phi rejection: find angular max for given theta
+  // We sample phi uniformly [0, 2pi] then accept/reject by |Y(theta,phi)|^2 / max_phi
+  // Precompute per-theta max of |Y|^2 over phi
+  const Nth = angCDF.ths.length;
+  const phiMax = new Float64Array(Nth);
+  for (let i = 0; i < Nth; i++) {
+    const theta = angCDF.ths[i];
+    let mx = 0;
+    for (let j = 0; j < 16; j++) {
+      const phi = j / 16 * 2 * Math.PI;
+      const Y = Ylm_real(l, m, theta, phi);
+      const v = Y*Y;
+      if (v > mx) mx = v;
+    }
+    phiMax[i] = mx + 1e-30;
+  }
+
+  const positions  = new Float32Array(Npts*3);
+  const p2vals     = new Float32Array(Npts);
+
+  let accepted = 0;
+  const batchReport = Math.max(1, Math.floor(Npts / 20));
+
+  while (accepted < Npts) {
+    // Sample r from radial CDF
+    const r = sampleRadial(radCDF.cdf, radCDF.rs, rmax);
+
+    // Sample theta from angular CDF
+    const thetaIdx = (() => {
+      const u = Math.random();
+      let lo = 0, hi = angCDF.cdf.length - 2;
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        if (angCDF.cdf[mid+1] < u) lo = mid + 1; else hi = mid;
+      }
+      return lo;
+    })();
+    const theta = angCDF.ths[thetaIdx] + Math.random() * (Math.PI / Nth);
+
+    // Sample phi with rejection
+    const phi = Math.random() * 2 * Math.PI;
+    const Y = Ylm_real(l, m, theta, phi);
+    const p = Y*Y;
+    if (Math.random() * phiMax[thetaIdx] > p) continue;
+
+    const sinT = Math.sin(theta);
+    const x = r * sinT * Math.cos(phi);
+    const y = r * sinT * Math.sin(phi);
+    const z = r * Math.cos(theta);
+
+    const R = R_nl(n, l, r);
+    positions[accepted*3  ] = x;
+    positions[accepted*3+1] = y;
+    positions[accepted*3+2] = z;
+    p2vals[accepted] = R*R * p;
+    accepted++;
+
+    if (accepted % batchReport === 0 && onProgress) onProgress(accepted/Npts);
+  }
+
+  // 92nd percentile extent for viewport
+  const extents = [];
+  for (let i = 0; i < Npts; i++) {
+    extents.push(
+      Math.abs(positions[i*3]),
+      Math.abs(positions[i*3+1]),
+      Math.abs(positions[i*3+2])
+    );
+  }
+  extents.sort((a,b) => a-b);
+  const rActual = extents[Math.floor(extents.length * 0.92)];
+
+  cloudData = {positions, p2vals, Npts, rmax, rActual};
+  return cloudData;
+}
+
+// ── Color mode — density only ─────────────────────────────────────────────
+let colorMode='prob';
+
+function computeColors(data) {
+  const {p2vals, Npts} = data;
+  const colors = new Float32Array(Npts*3);
+
+  let p2max = 0;
+  for (let i = 0; i < Npts; i++) if (p2vals[i] > p2max) p2max = p2vals[i];
+
+  for (let i = 0; i < Npts; i++) {
+    // Use sqrt for gentler falloff — avoids saturation at center
+    const t = Math.pow(p2vals[i] / (p2max||1), 0.38);
+    let r, g, b;
+    // Deep navy → TUM blue → cyan → white
+    if (t < 0.35) { const s=t/0.35; r=0; g=s*0.25; b=0.10+s*0.58; }
+    else if (t < 0.62) { const s=(t-0.35)/0.27; r=0; g=0.25+s*0.55; b=0.68+s*0.25; }
+    else if (t < 0.82) { const s=(t-0.62)/0.20; r=s*0.50; g=0.80+s*0.15; b=0.93-s*0.05; }
+    else { const s=(t-0.82)/0.18; r=0.50+s*0.50; g=0.95+s*0.05; b=0.88+s*0.12; }
+    colors[i*3]=r; colors[i*3+1]=g; colors[i*3+2]=b;
+  }
+  return colors;
+}
+
+function applyColorMode(mode) {
+  colorMode=mode;
+  if(!currentCloud||!cloudData) return;
+  const colors=computeColors(cloudData);
+  currentCloud.geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));
+  currentCloud.geometry.attributes.color.needsUpdate=true;
+  updateLegend();
+}
+
+function updateLegend() {
+  const c=document.getElementById('legend-canvas');
+  const cx=c.getContext('2d');
+  const W=c.width, H=c.height;
+  const grad=cx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0.00,'#ffffff'); grad.addColorStop(0.12,'#caf0f8');
+  grad.addColorStop(0.30,'#90e0ef'); grad.addColorStop(0.55,'#00b4d8');
+  grad.addColorStop(0.75,'#0065bd'); grad.addColorStop(0.90,'#001845');
+  grad.addColorStop(1.00,'#000020');
+  document.querySelector('.legend-title').textContent='Farbe = |ψ|²';
+  document.querySelector('.legend-sub').textContent='Aufenthaltswahrscheinlichkeit';
+  document.querySelector('.legend-note').innerHTML=
+    '<span class="note-bright">■ Weiß/Cyan:</span> hohes |ψ|²<br>oft gefunden<br><br>'+
+    '<span class="note-dark">■ Schwarz:</span> |ψ|² = 0<br>Knoten — nie gefunden';
+  cx.fillStyle=grad; cx.fillRect(0,0,W,H);
+}
+
+
+
+// ── Three.js setup ────────────────────────────────────────────────────────
+const container=document.getElementById('canvas-container');
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x04060f,1);
+container.appendChild(renderer.domElement);
+
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(45,
+  (window.innerWidth-180)/window.innerHeight, 0.1, 2000);
+camera.position.set(0,0,80);
+
+// Axes helper
+const axMat=(col)=>new THREE.LineBasicMaterial({color:col,transparent:true,opacity:0.25});
+const axLen=50;
+function makeAxis(dir,col){
+  const g=new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0,0,0), new THREE.Vector3(...dir.map(v=>v*axLen))]);
+  return new THREE.Line(g,axMat(col));
+}
+scene.add(makeAxis([1,0,0],0x3a2020));
+scene.add(makeAxis([0,1,0],0x1a3a1a));
+scene.add(makeAxis([0,0,1],0x1a2050));
+
+// Nucleus
+const nucGeo=new THREE.SphereGeometry(0.6,16,16);
+const nucMat=new THREE.MeshBasicMaterial({color:0xf0c040});
+scene.add(new THREE.Mesh(nucGeo,nucMat));
+
+// Mouse orbit
+let isDragging=false, lastX=0, lastY=0;
+let rotX=0.3, rotY=-0.4;
+let zoom=1.0;
+let autoRotSpeed=0.3;
+const pivotGroup=new THREE.Group();
+scene.add(pivotGroup);
+
+renderer.domElement.addEventListener('mousedown',e=>{if(e.button===0){isDragging=true;lastX=e.clientX;lastY=e.clientY;}});
+renderer.domElement.addEventListener('mousemove',e=>{
+  if(!isDragging)return;
+  const dx=e.clientX-lastX, dy=e.clientY-lastY;
+  rotY+=dx*0.008; rotX+=dy*0.008;
+  rotX=Math.max(-Math.PI/2,Math.min(Math.PI/2,rotX));
+  lastX=e.clientX; lastY=e.clientY;
+});
+renderer.domElement.addEventListener('mouseup',()=>isDragging=false);
+renderer.domElement.addEventListener('wheel',e=>{
+  zoom*=(1+e.deltaY*0.001);
+  zoom=Math.max(0.2,Math.min(5,zoom));
+});
+renderer.domElement.addEventListener('touchstart',e=>{
+  if(e.touches.length===1){isDragging=true;lastX=e.touches[0].clientX;lastY=e.touches[0].clientY;}
+});
+renderer.domElement.addEventListener('touchmove',e=>{
+  if(!isDragging||e.touches.length!==1)return;
+  const dx=e.touches[0].clientX-lastX, dy=e.touches[0].clientY-lastY;
+  rotY+=dx*0.008; rotX+=dy*0.008;
+  lastX=e.touches[0].clientX; lastY=e.touches[0].clientY;
+});
+renderer.domElement.addEventListener('touchend',()=>isDragging=false);
+
+// Current orbital state
+let currentCloud=null;
+let currentN=1,currentL=0,currentM=0;
+
+function loadOrbital(n,l,m){
+  currentN=n; currentL=l; currentM=m;
+  const Npts=parseInt(document.getElementById('slPts').value);
+  const loading=document.getElementById('loading');
+  const fill=document.getElementById('load-fill');
+  loading.style.display='flex';
+  fill.style.width='0%';
+
+  // Remove old cloud
+  if(currentCloud){pivotGroup.remove(currentCloud);currentCloud.geometry.dispose();}
+
+  // Update UI
+  document.querySelectorAll('.orb-btn').forEach(b=>{
+    b.classList.toggle('active',
+      parseInt(b.dataset.n)===n&&parseInt(b.dataset.l)===l&&parseInt(b.dataset.m)===m);
+  });
+  const En=(-13.6/(n*n)).toFixed(2);
+  document.getElementById('qn-text').textContent=`n=${n}, ℓ=${l}, m=${m}`;
+  document.getElementById('En-text').textContent=`E${n} = ${En} eV`;
+  document.getElementById('nodes-text').textContent=
+    `${n-l-1} radiale · ${l} angulare Knoten`;
+  document.getElementById('ip-n').textContent=n;
+  document.getElementById('ip-l').textContent=l;
+  document.getElementById('ip-m').textContent=m;
+  document.getElementById('ip-E').textContent=`${En} eV`;
+  document.getElementById('ip-kr').textContent=n-l-1;
+  document.getElementById('ip-ka').textContent=l;
+  document.getElementById('ip-pts').textContent=`${(Npts/1000).toFixed(0)}k`;
+
+  const names=['s','p','d','f'];
+  const lname=names[l]||'?';
+  document.getElementById('ip-formula').textContent=
+    `ψ = R${n}${l}(r) · Y${l}${m>=0?'+':''}${m}(θ,φ)`;
+
+  // Draw 2D projections immediately
+  drawRadial(n, l);
+  drawAngular(l, m);
+
+  // Build asynchronously
+  setTimeout(()=>{
+    const data=buildPointCloud(n,l,m,Npts,p=>{
+      fill.style.width=(p*100).toFixed(0)+'%';
+    });
+
+    const colors=computeColors(data);
+
+    const geo=new THREE.BufferGeometry();
+    geo.setAttribute('position',new THREE.BufferAttribute(data.positions,3));
+    geo.setAttribute('color',new THREE.BufferAttribute(colors,3));
+
+    const ptSize=parseFloat(document.getElementById('slSize').value);
+    const brightness=parseFloat(document.getElementById('slBright').value);
+
+    const mat=new THREE.PointsMaterial({
+      size: ptSize,
+      vertexColors:true,
+      transparent:true,
+      opacity: brightness * 0.45,
+      blending:THREE.AdditiveBlending,
+      depthWrite:false,
+      sizeAttenuation:true,
+    });
+
+    currentCloud=new THREE.Points(geo,mat);
+    pivotGroup.add(currentCloud);
+
+    // Scale camera to ACTUAL orbital extent, slightly pulled back for breathing room
+    const viewDist=data.rActual * 5.2 * zoom;
+    camera.position.set(0,0,viewDist);
+    camera.far=viewDist*20;
+    camera.near=viewDist*0.001;
+    camera.updateProjectionMatrix();
+
+    loading.style.display='none';
+
+    // Update formula panel
+    updateFormulaPanel(n, l, m);
+  },10);
+}
+
+// Controls
+document.getElementById('slPts').addEventListener('input',function(){
+  document.getElementById('valPts').textContent=(this.value/1000).toFixed(0)+'k';
+  loadOrbital(currentN,currentL,currentM);
+});
+document.getElementById('slSize').addEventListener('input',function(){
+  document.getElementById('valSize').textContent=parseFloat(this.value).toFixed(1);
+  if(currentCloud) currentCloud.material.size=parseFloat(this.value);
+});
+document.getElementById('slBright').addEventListener('input',function(){
+  const b=parseFloat(this.value);
+  document.getElementById('valBright').textContent=b.toFixed(1);
+  if(currentCloud) currentCloud.material.opacity=b*0.55;
+});
+document.getElementById('slRot').addEventListener('input',function(){
+  autoRotSpeed=parseFloat(this.value);
+  document.getElementById('valRot').textContent=autoRotSpeed.toFixed(1);
+});
+
+// color mode fixed to density only
+
+document.querySelectorAll('.orb-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    loadOrbital(parseInt(btn.dataset.n),parseInt(btn.dataset.l),parseInt(btn.dataset.m));
+  });
+});
+
+// Resize
+window.addEventListener('resize',()=>{
+  const w=window.innerWidth, h=window.innerHeight;
+  camera.aspect=(w-260)/h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w,h);
+});
+
+// Animate
+const clock=new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=clock.getDelta();
+  if(!isDragging && autoRotSpeed>0) rotY+=autoRotSpeed*dt*0.5;
+  pivotGroup.rotation.x=rotX;
+  pivotGroup.rotation.y=rotY;
+  // Camera zoom
+  const rmax=currentCloud?
+    Math.max(...Array.from(currentCloud.geometry.attributes.position.array).filter((_,i)=>i%3===0).map(Math.abs)):
+    30;
+  renderer.setViewport(260,0,window.innerWidth-260,window.innerHeight);
+  renderer.setScissor(260,0,window.innerWidth-260,window.innerHeight);
+  renderer.setScissorTest(true);
+  renderer.render(scene,camera);
+}
+animate();
+
+// ── Draw radial projection r²|R_nl(r)|² ──────────────────────────────────
+function drawRadial(n, l) {
+  const cv = document.getElementById('cvRadial');
+  const cx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  cx.fillStyle = '#000010'; cx.fillRect(0,0,W,H);
+
+  const rmax = (n*n*(n+2))*2.8;
+  const Nr = 300;
+  const vals = new Float64Array(Nr);
+  let vmax = 0;
+  for(let i=0;i<Nr;i++){
+    const r = rmax*(i+0.5)/Nr;
+    const R = R_nl(n,l,r);
+    vals[i] = r*r*R*R;
+    if(vals[i]>vmax) vmax=vals[i];
+  }
+
+  // Grid line at zero
+  cx.strokeStyle='#0d1a2e'; cx.lineWidth=0.5;
+  cx.beginPath(); cx.moveTo(0,H-12); cx.lineTo(W,H-12); cx.stroke();
+
+  // Fill under curve
+  cx.beginPath();
+  cx.moveTo(0, H-12);
+  for(let i=0;i<Nr;i++){
+    const px = i/Nr*W;
+    const py = (H-12) - (vals[i]/vmax)*(H-18);
+    i===0 ? cx.moveTo(px,py) : cx.lineTo(px,py);
+  }
+  cx.lineTo(W, H-12); cx.closePath();
+  const grad = cx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,'rgba(0,180,216,0.35)');
+  grad.addColorStop(1,'rgba(0,101,189,0.05)');
+  cx.fillStyle=grad; cx.fill();
+
+  // Curve
+  cx.beginPath();
+  for(let i=0;i<Nr;i++){
+    const px=i/Nr*W, py=(H-12)-(vals[i]/vmax)*(H-18);
+    i===0?cx.moveTo(px,py):cx.lineTo(px,py);
+  }
+  cx.strokeStyle='#00b4d8'; cx.lineWidth=1.5; cx.stroke();
+
+  // Axis labels
+  cx.fillStyle='#304050'; cx.font='7px JetBrains Mono,monospace';
+  cx.textAlign='left'; cx.fillText('0',2,H-2);
+  cx.textAlign='right'; cx.fillText(`${(rmax).toFixed(0)} a₀`,W-2,H-2);
+  cx.textAlign='left'; cx.fillStyle='#507090';
+  cx.fillText('r²|R|²',2,10);
+
+  // Mark most probable radius (peak)
+  let peakI=0;
+  for(let i=1;i<Nr;i++) if(vals[i]>vals[peakI]) peakI=i;
+  const rp=rmax*(peakI+0.5)/Nr;
+  const px=peakI/Nr*W;
+  cx.strokeStyle='rgba(240,192,64,0.5)'; cx.lineWidth=0.8; cx.setLineDash([3,3]);
+  cx.beginPath(); cx.moveTo(px,0); cx.lineTo(px,H-12); cx.stroke();
+  cx.setLineDash([]);
+  cx.fillStyle='#f0c040'; cx.font='7px JetBrains Mono,monospace';
+  cx.textAlign= px>W/2?'right':'left';
+  cx.fillText(`r_max≈${rp.toFixed(1)}`,px+(px>W/2?-3:3),14);
+
+  document.getElementById('eq-radial').textContent=`P(r) = r²·R${n}${l}²(r)`;
+}
+
+// ── Draw angular polar diagram |Y_lm(θ)|² ────────────────────────────────
+function drawAngular(l, m) {
+  const cv = document.getElementById('cvAngular');
+  const cx = cv.getContext('2d');
+  const W=cv.width, H=cv.height;
+  cx.fillStyle='#000010'; cx.fillRect(0,0,W,H);
+
+  const cx0=W/2, cy0=H/2;
+  const Nth=360;
+  const vals=new Float64Array(Nth);
+  let vmax=0;
+  for(let i=0;i<Nth;i++){
+    const theta=i/Nth*Math.PI*2;
+    // For polar diagram: integrate over phi → use m=0 or |Y|² averaged
+    // We plot |Y_lm(theta, 0)|^2 in the xz plane
+    const Y=Ylm_real(l,m,theta,0);
+    vals[i]=Y*Y;
+    if(vals[i]>vmax) vmax=vals[i];
+  }
+
+  // Scale: max radius = min(W,H)/2 - 10
+  const Rmax=Math.min(W,H)/2-10;
+
+  // Reference circle (isotropic)
+  cx.beginPath();
+  cx.arc(cx0,cy0,Rmax*0.3,0,2*Math.PI);
+  cx.strokeStyle='#1e2d45'; cx.lineWidth=0.5; cx.stroke();
+
+  // Axes
+  cx.strokeStyle='#1e3050'; cx.lineWidth=0.5;
+  cx.beginPath(); cx.moveTo(cx0,8); cx.lineTo(cx0,H-8); cx.stroke();
+  cx.beginPath(); cx.moveTo(8,cy0); cx.lineTo(W-8,cy0); cx.stroke();
+  cx.fillStyle='#304050'; cx.font='8px JetBrains Mono,monospace';
+  cx.textAlign='center'; cx.fillText('z',cx0,10);
+  cx.textAlign='left'; cx.fillText('x',W-10,cy0+10);
+
+  // Polar plot — color by value
+  cx.beginPath();
+  for(let i=0;i<=Nth;i++){
+    const theta=i/Nth*Math.PI*2;
+    const r=vmax>0?(vals[i%Nth]/vmax)*Rmax:0;
+    // theta=0 → z-axis (up), so x=r*sin(theta), y=-r*cos(theta)
+    const px=cx0+r*Math.sin(theta);
+    const py=cy0-r*Math.cos(theta);
+    i===0?cx.moveTo(px,py):cx.lineTo(px,py);
+  }
+  cx.closePath();
+
+  // Gradient fill: color by radius value
+  const fillGrad=cx.createRadialGradient(cx0,cy0,0,cx0,cy0,Rmax);
+  fillGrad.addColorStop(0,'rgba(0,101,189,0.5)');
+  fillGrad.addColorStop(0.6,'rgba(0,180,216,0.3)');
+  fillGrad.addColorStop(1,'rgba(144,224,239,0.1)');
+  cx.fillStyle=fillGrad; cx.fill();
+  cx.strokeStyle='#00b4d8'; cx.lineWidth=1.4; cx.stroke();
+
+  // Label
+  cx.fillStyle='#507090'; cx.font='7px JetBrains Mono,monospace';
+  cx.textAlign='left'; cx.fillText(`|Y${l}${m>=0?'+':''}${m}|²`,3,10);
+
+  const lname=['s','p','d','f'];
+  document.getElementById('eq-angular').textContent=
+    `|Y${l}${m>=0?'+':''}${m}(θ,φ)|²  [xz-Schnitt]`;
+}
+
+// ── Hook projections into loadOrbital ─────────────────────────────────────
+// Patch the loading function to also draw projections
+const _origTimeout = window.setTimeout;
+
+// ── Draw color legend gradient ────────────────────────────────────────────
+function drawLegend() {
+  const c = document.getElementById('legend-canvas');
+  const ctx2 = c.getContext('2d');
+  const grad = ctx2.createLinearGradient(0, 0, 0, c.height);
+  // Top = high |psi|^2 = white/cyan, bottom = zero = deep navy
+  grad.addColorStop(0.00, '#ffffff');
+  grad.addColorStop(0.12, '#caf0f8');
+  grad.addColorStop(0.30, '#90e0ef');
+  grad.addColorStop(0.55, '#00b4d8');
+  grad.addColorStop(0.75, '#0065bd');
+  grad.addColorStop(0.90, '#001845');
+  grad.addColorStop(1.00, '#000020');
+  ctx2.fillStyle = grad;
+  ctx2.fillRect(0, 0, c.width, c.height);
+}
+// ── Formula panel updater ─────────────────────────────────────────────────
+const radialFormulas = {
+  '10': '2·(1/a₀)^(3/2)·e^(−r/a₀)',
+  '20': '(1/2√2)·(1/a₀)^(3/2)·(2 − r/a₀)·e^(−r/2a₀)',
+  '21': '(1/2√6)·(1/a₀)^(3/2)·(r/a₀)·e^(−r/2a₀)',
+  '30': '(2/81√3)·(1/a₀)^(3/2)·(27−18r/a₀+2r²/a₀²)·e^(−r/3a₀)',
+  '31': '(8/27√6)·(1/a₀)^(3/2)·(6−r/a₀)·(r/a₀)·e^(−r/3a₀)',
+  '32': '(4/81√30)·(1/a₀)^(3/2)·(r/a₀)²·e^(−r/3a₀)',
+  '40': '(1/4)·(1/a₀)^(3/2)·(24−36ρ+12ρ²−ρ³)·e^(−ρ/4),  ρ=r/a₀',
+  '41': '(1/16√15)·(1/a₀)^(3/2)·ρ·(20−10ρ+ρ²)·e^(−ρ/4)',
+  '42': '(1/96√5)·(1/a₀)^(3/2)·ρ²·(6−ρ)·e^(−ρ/4)',
+  '43': '(1/768√35)·(1/a₀)^(3/2)·ρ³·e^(−ρ/4)',
+};
+const angularFormulas = {
+  '00': '1/√(4π)',
+  '10': '√(3/4π)·cos θ',
+  '11': '√(3/4π)·sin θ·cos φ  (m=+1)',
+  '1-1': '√(3/4π)·sin θ·sin φ  (m=−1)',
+  '20': '√(5/16π)·(3cos²θ − 1)',
+  '21': '√(15/4π)·sin θ·cos θ·cos φ',
+  '2-1': '√(15/4π)·sin θ·cos θ·sin φ',
+  '22': '√(15/16π)·sin²θ·cos 2φ',
+  '2-2': '√(15/16π)·sin²θ·sin 2φ',
+  '30': '√(7/16π)·(5cos³θ − 3cos θ)',
+  '31': '√(21/32π)·sin θ·(5cos²θ−1)·cos φ',
+  '32': '√(105/4π)·sin²θ·cos θ·cos 2φ',
+  '33': '√(35/32π)·sin³θ·cos 3φ',
+  '40': '(3/16√π)·(35cos⁴θ−30cos²θ+3)',
+  '41': '(3/8)·√(5/π)·sin θ·(7cos³θ−3cos θ)·cos φ',
+  '42': '(3/8)·√(5/2π)·sin²θ·(7cos²θ−1)·cos 2φ',
+  '43': '(3/8)·√(35/π)·sin³θ·cos θ·cos 3φ',
+};
+const densityFormulas = {
+  '10': 'e^(−2r/a₀)',
+  '20': '(2−r/a₀)²·e^(−r/a₀)',
+  '21': '(r/a₀)²·e^(−r/a₀)·cos²θ  (m=0)',
+  '30': '(27−18r/a₀+2r²/a₀²)²·e^(−2r/3a₀)',
+  '32': '(r/a₀)⁴·e^(−2r/3a₀)·sin⁴θ  (m=±2)',
+};
+
+function updateFormulaPanel(n, l, m) {
+  const key = `${n}${l}`;
+  const akey = `${l}${m}`;
+  const rf = document.getElementById('fs-radial');
+  const af = document.getElementById('fs-angular');
+  const df = document.getElementById('fs-density');
+  if (rf) rf.textContent = radialFormulas[key] || `R${n}${l}(r) (analytisch)`;
+  if (af) af.textContent = angularFormulas[akey] || `Y${l}${m}(θ,φ)`;
+  if (df) df.textContent = densityFormulas[`${n}${l}`] || `|R${n}${l}|²·|Y${l}${m}|²`;
+}
+
+updateLegend();
+
+// Init
+loadOrbital(1,0,0);
+</script>
+</body>
+</html>

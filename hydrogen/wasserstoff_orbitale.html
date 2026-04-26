@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wasserstoff-Orbitale | ψ_nlm</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap');
+
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --border: #1e2229;
+    --accent: #3b8beb;
+    --accent2: #e06c3a;
+    --text: #c8cdd6;
+    --text-dim: #5a6070;
+    --text-bright: #eef0f4;
+    --panel-bg: #0d1016;
+    --tum-blue: #3070b3;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  header {
+    padding: 18px 28px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+  }
+
+  header h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  header .subtitle {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--tum-blue);
+    letter-spacing: 0.04em;
+  }
+
+  .controls-bar {
+    padding: 14px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+
+  .qn-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .qn-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+    min-width: 14px;
+  }
+
+  .qn-val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 16px;
+    color: var(--text-bright);
+    font-weight: 500;
+    min-width: 22px;
+    text-align: center;
+  }
+
+  .btn-group {
+    display: flex;
+    gap: 3px;
+  }
+
+  .btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border-radius: 2px;
+  }
+
+  .btn:hover { background: var(--border); color: var(--text); }
+  .btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .state-display {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    color: var(--text-dim);
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .state-display span { color: var(--accent); }
+  .state-display .energy-formula {
+    font-size: 11px;
+    color: var(--text-dim);
+    opacity: 0.6;
+    margin-left: 8px;
+  }
+
+  .panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    height: calc(100vh - 115px);
+    min-height: 420px;
+  }
+
+  .panel {
+    background: var(--panel-bg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 10px 14px 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .panel-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .panel-formula {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  canvas {
+    display: block;
+    flex: 1;
+    width: 100%;
+  }
+
+  .panel-footer {
+    padding: 6px 14px;
+    border-top: 1px solid var(--border);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .info-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Wasserstoff-Orbital Visualisierung</h1>
+  <div class="subtitle">Exp. Phy. 4 · TUM · Prof. Resconi</div>
+</header>
+
+<div class="controls-bar">
+  <!-- n -->
+  <div class="qn-group">
+    <span class="qn-label" style="font-style:italic">n</span>
+    <div class="btn-group" id="btns-n">
+      <button class="btn" data-qn="n" data-val="1">1</button>
+      <button class="btn active" data-qn="n" data-val="2">2</button>
+      <button class="btn" data-qn="n" data-val="3">3</button>
+      <button class="btn" data-qn="n" data-val="4">4</button>
+    </div>
+  </div>
+
+  <!-- l -->
+  <div class="qn-group">
+    <span class="qn-label" style="font-style:italic">ℓ</span>
+    <div class="btn-group" id="btns-l"></div>
+  </div>
+
+  <!-- m -->
+  <div class="qn-group">
+    <span class="qn-label" style="font-style:italic">m</span>
+    <div class="btn-group" id="btns-m"></div>
+  </div>
+
+  <div class="state-display" id="state-display">
+    ψ<span id="sd-nlm">₂₁₀</span>
+    &nbsp;·&nbsp;
+    E<sub id="sd-n-sub">n</sub> = −13.6/<span id="sd-n2">n²</span> = <span id="sd-E">−3.40</span> eV
+    &nbsp;·&nbsp;
+    |L| = ℏ√(ℓ(ℓ+1)) = <span id="sd-L">√2</span> ℏ
+    &nbsp;·&nbsp;
+    L<sub>z</sub> = <span id="sd-Lz">0</span> ℏ
+  </div>
+</div>
+
+<div class="panels">
+  <!-- Panel 1: Full orbital density -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">Volles Orbital</div>
+      <div class="panel-formula">|ψ_nlm(r,θ,φ)|² = |R_nl(r)|² · |Y_ℓm(θ,φ)|² &nbsp;(xz-Schnitt)</div>
+    </div>
+    <canvas id="cvDensity"></canvas>
+    <div class="panel-footer">
+      <span>Aufenthaltswahrscheinlichkeit</span>
+      <span id="footer-density">xz-Ebene, φ=0</span>
+    </div>
+  </div>
+
+  <!-- Panel 2: Angular polar diagram -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">Polardiagramm</div>
+      <div class="panel-formula">|Y_ℓm(θ,φ)|² &nbsp;(nur Winkelanteil, kein R)</div>
+    </div>
+    <canvas id="cvPolar"></canvas>
+    <div class="panel-footer">
+      <span>Winkel-Aufenthaltswahrscheinlichkeit</span>
+      <span id="footer-polar">2D-Schnitt</span>
+    </div>
+  </div>
+
+  <!-- Panel 3: Radial function -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">Radialfunktion</div>
+      <div class="panel-formula">r²|R_nl(r)|² &nbsp;(radiale Aufenthaltswahrscheinlichkeit)</div>
+    </div>
+    <canvas id="cvRadial"></canvas>
+    <div class="panel-footer">
+      <span>Radialknoten: <span id="footer-nodes">0</span></span>
+      <span id="footer-radial">⟨r⟩ = — a₀</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Quantum state ───────────────────────────────────────────────────────────
+let state = { n: 2, l: 1, m: 0 };
+
+// ─── Factorial & associated Laguerre / Legendre ──────────────────────────────
+function factorial(n) {
+  if (n <= 1) return 1;
+  let r = 1; for (let i = 2; i <= n; i++) r *= i; return r;
+}
+
+// Associated Laguerre polynomial L^alpha_k(x)
+function assocLaguerre(k, alpha, x) {
+  if (k === 0) return 1;
+  if (k === 1) return 1 + alpha - x;
+  let L0 = 1, L1 = 1 + alpha - x;
+  for (let i = 2; i <= k; i++) {
+    let L2 = ((2*i - 1 + alpha - x) * L1 - (i - 1 + alpha) * L0) / i;
+    L0 = L1; L1 = L2;
+  }
+  return L1;
+}
+
+// Radial wavefunction R_nl(r) in units of a0
+function R_nl(n, l, r) {
+  const a0 = 1;
+  const rho = 2 * r / (n * a0);
+  const k = n - l - 1;
+  if (k < 0) return 0;
+  // Normalization
+  const N = Math.sqrt(
+    Math.pow(2 / (n * a0), 3) *
+    factorial(k) /
+    (2 * n * Math.pow(factorial(n + l), 3) / Math.pow(factorial(n + l), 2))
+  );
+  // Proper normalization
+  const norm = Math.sqrt(
+    (2.0 / (n * a0)) ** 3 *
+    factorial(n - l - 1) /
+    (2 * n * factorial(n + l) ** 3 / factorial(n + l) ** 2)
+  );
+  // Use standard formula
+  const norm2 = Math.sqrt(
+    Math.pow(2.0/(n*a0), 3) * factorial(n-l-1) / (2*n * Math.pow(factorial(n+l), 1))
+  );
+  return norm2 * Math.exp(-rho/2) * Math.pow(rho, l) * assocLaguerre(n-l-1, 2*l+1, rho);
+}
+
+// Associated Legendre polynomial P_l^|m|(cos θ) — via recurrence
+function assocLegendre(l, m, x) {
+  // m >= 0
+  const absm = Math.abs(m);
+  // P_m^m
+  let pmm = 1.0;
+  if (absm > 0) {
+    const somx2 = Math.sqrt((1-x)*(1+x));
+    let fact = 1.0;
+    for (let i = 1; i <= absm; i++) {
+      pmm *= -fact * somx2;
+      fact += 2.0;
+    }
+  }
+  if (l === absm) return pmm;
+  let pmmp1 = x * (2*absm + 1) * pmm;
+  if (l === absm + 1) return pmmp1;
+  let pll = 0;
+  for (let ll = absm + 2; ll <= l; ll++) {
+    pll = (x*(2*ll-1)*pmmp1 - (ll+absm-1)*pmm) / (ll - absm);
+    pmm = pmmp1; pmmp1 = pll;
+  }
+  return pll;
+}
+
+// |Y_lm(theta, phi=0)|^2 (real part cross-section)
+function Ylm_sq(l, m, theta) {
+  const absm = Math.abs(m);
+  // Normalization
+  const norm = Math.sqrt(
+    (2*l+1)/(4*Math.PI) *
+    factorial(l - absm) / factorial(l + absm)
+  );
+  const P = assocLegendre(l, absm, Math.cos(theta));
+  // For phi=0, e^(im*phi)=1 for real part
+  // We take |Y_lm|^2 integrated over phi => factor 2 for m!=0
+  const val = norm * P;
+  return val * val * (m === 0 ? 1 : 2); // azimuthal average for cross-section
+}
+
+// ─── Canvas setup ────────────────────────────────────────────────────────────
+const cvs = {
+  density: document.getElementById('cvDensity'),
+  polar:   document.getElementById('cvPolar'),
+  radial:  document.getElementById('cvRadial')
+};
+
+function resizeCanvases() {
+  for (const key in cvs) {
+    const c = cvs[key];
+    const rect = c.parentElement.getBoundingClientRect();
+    const h = rect.height - c.parentElement.querySelector('.panel-header').offsetHeight
+              - c.parentElement.querySelector('.panel-footer').offsetHeight;
+    c.width  = rect.width;
+    c.height = Math.max(h, 200);
+  }
+  draw();
+}
+
+// ─── Color map: dark → blue → white (density) ────────────────────────────────
+function densityColor(t) {
+  // t in [0,1]
+  t = Math.min(1, Math.max(0, t));
+  if (t < 0.33) {
+    const s = t / 0.33;
+    return `rgb(${Math.round(10+s*10)},${Math.round(20+s*30)},${Math.round(30+s*80)})`;
+  } else if (t < 0.66) {
+    const s = (t-0.33)/0.33;
+    return `rgb(${Math.round(20+s*40)},${Math.round(50+s*80)},${Math.round(110+s*100)})`;
+  } else {
+    const s = (t-0.66)/0.34;
+    return `rgb(${Math.round(60+s*195)},${Math.round(130+s*125)},${Math.round(210+s*45)})`;
+  }
+}
+
+// ─── Panel 1: Full orbital density ───────────────────────────────────────────
+function drawDensity(n, l, m) {
+  const cv = cvs.density;
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0,0,W,H);
+
+  // range: show out to r = (n^2 * 5) a0 — enough to capture radial extent
+  const rmax = Math.max(20, n*n*6);
+  const img = ctx.createImageData(W, H);
+
+  // Find max for normalization
+  let maxVal = 0;
+  const vals = new Float32Array(W * H);
+
+  for (let py = 0; py < H; py++) {
+    for (let px = 0; px < W; px++) {
+      // Map pixel to (x, z) in atomic units
+      const x = (px/W - 0.5) * 2 * rmax;
+      const z = (0.5 - py/H) * 2 * rmax;
+      const r = Math.sqrt(x*x + z*z);
+      const theta = Math.atan2(Math.sqrt(x*x), z); // polar angle from z-axis
+      // actually theta = angle from z-axis
+      const th = Math.atan2(Math.abs(x), z < 0 ? z : z); // atan2(rho, z)
+      const theta2 = Math.acos(Math.max(-1, Math.min(1, z / (r + 1e-12))));
+
+      const Rval = R_nl(n, l, r);
+      const absm = Math.abs(m);
+      const norm = Math.sqrt((2*l+1)/(4*Math.PI) * factorial(l-absm)/factorial(l+absm));
+      const P = assocLegendre(l, absm, Math.cos(theta2));
+      const Yval = norm * P; // phi=0, m factor absorbed in real orbital
+
+      const psi2 = Rval * Rval * Yval * Yval;
+      vals[py*W + px] = psi2;
+      if (psi2 > maxVal) maxVal = psi2;
+    }
+  }
+
+  if (maxVal === 0) maxVal = 1;
+
+  for (let i = 0; i < W*H; i++) {
+    const t = Math.pow(vals[i] / maxVal, 0.35); // gamma for visibility
+    const py = Math.floor(i / W), px = i % W;
+    const x = (px/W - 0.5) * 2 * rmax;
+    const z = (0.5 - py/H) * 2 * rmax;
+
+    let r, g, b;
+    if (t < 0.02) { r=10; g=12; b=16; }
+    else if (t < 0.15) {
+      const s = (t-0.02)/0.13;
+      r = Math.round(10 + s*10); g = Math.round(12 + s*40); b = Math.round(16 + s*100);
+    } else if (t < 0.5) {
+      const s = (t-0.15)/0.35;
+      r = Math.round(20 + s*20); g = Math.round(52 + s*80); b = Math.round(116 + s*80);
+    } else {
+      const s = (t-0.5)/0.5;
+      r = Math.round(40 + s*215); g = Math.round(132 + s*118); b = Math.round(196 + s*59);
+    }
+
+    const idx = (py*W + px)*4;
+    img.data[idx]   = r;
+    img.data[idx+1] = g;
+    img.data[idx+2] = b;
+    img.data[idx+3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+
+  // Draw axes
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3,4]);
+  ctx.beginPath();
+  ctx.moveTo(W/2, 0); ctx.lineTo(W/2, H);
+  ctx.moveTo(0, H/2); ctx.lineTo(W, H/2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Axis labels
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.font = '13px IBM Plex Mono, monospace';
+  ctx.fillText('z', W/2 + 4, 14);
+  ctx.fillText('x', W - 14, H/2 - 4);
+
+  // Scale bar
+  const pxPerA0 = W / (2 * rmax);
+  const scaleA0 = Math.round(rmax / 3);
+  const scaleW = scaleA0 * pxPerA0;
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(14, H - 16); ctx.lineTo(14 + scaleW, H - 16);
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.font = '11px IBM Plex Mono, monospace';
+  ctx.fillText(`${scaleA0} a₀`, 14, H - 6);
+}
+
+// ─── Panel 2: Polar diagram ───────────────────────────────────────────────────
+function drawPolar(l, m) {
+  const cv = cvs.polar;
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0,0,W,H);
+
+  const cx = W/2, cy = H/2;
+  const scale = Math.min(W, H) * 0.42;
+
+  // Find max
+  let maxVal = 0;
+  for (let i = 0; i <= 360; i++) {
+    const theta = i * Math.PI / 180;
+    const v = Ylm_sq(l, m, theta);
+    if (v > maxVal) maxVal = v;
+  }
+  if (maxVal === 0) maxVal = 1;
+
+  // Draw filled polar curve
+  ctx.beginPath();
+  let first = true;
+  for (let i = 0; i <= 720; i++) {
+    const theta = (i % 360) * Math.PI / 180;
+    const r = Math.sqrt(Ylm_sq(l, m, theta) / maxVal) * scale;
+    const px = cx + r * Math.sin(theta);
+    const py = cy - r * Math.cos(theta);
+    if (first) { ctx.moveTo(px, py); first = false; }
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+
+  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, scale);
+  grad.addColorStop(0, 'rgba(59, 139, 235, 0.7)');
+  grad.addColorStop(1, 'rgba(59, 139, 235, 0.1)');
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(59,139,235,0.9)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Draw axes
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3,4]);
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - scale*1.1); ctx.lineTo(cx, cy + scale*1.1);
+  ctx.moveTo(cx - scale*1.1, cy); ctx.lineTo(cx + scale*1.1, cy);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Reference circle at r=1
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(cx, cy, scale, 0, 2*Math.PI);
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.font = '13px IBM Plex Mono, monospace';
+  ctx.fillText('z', cx + 4, cy - scale*1.05);
+  ctx.fillText('x', cx + scale*1.02, cy - 4);
+
+  // Label
+  ctx.fillStyle = 'rgba(59,139,235,0.7)';
+  ctx.font = '12px IBM Plex Mono, monospace';
+  const lnames = ['s','p','d','f','g','h'];
+  ctx.fillText(`ℓ=${l}(${lnames[l]||l}), m=${m}`, 10, H-8);
+}
+
+// ─── Panel 3: Radial probability density ─────────────────────────────────────
+function drawRadial(n, l) {
+  const cv = cvs.radial;
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0,0,W,H);
+
+  const pad = { l: 44, r: 16, t: 16, b: 32 };
+  const pw = W - pad.l - pad.r;
+  const ph = H - pad.t - pad.b;
+
+  const rmax = Math.max(30, n*n*7);
+  const Nr = 600;
+
+  // Compute r^2 |R|^2
+  const rs = [], vals = [];
+  let maxVal = 0, rMean = 0, norm = 0;
+  for (let i = 1; i <= Nr; i++) {
+    const r = (i / Nr) * rmax;
+    const R = R_nl(n, l, r);
+    const v = r*r * R*R;
+    rs.push(r); vals.push(v);
+    if (v > maxVal) maxVal = v;
+    rMean += r * v; norm += v;
+  }
+  if (maxVal === 0) maxVal = 1;
+  if (norm > 0) rMean /= norm;
+
+  // Find radial nodes (sign changes of R_nl)
+  let nodes = 0;
+  let prevR = R_nl(n, l, 0.1);
+  for (let i = 1; i <= Nr; i++) {
+    const r = (i/Nr)*rmax;
+    const curR = R_nl(n, l, r);
+    if (prevR * curR < 0) nodes++;
+    prevR = curR;
+  }
+  document.getElementById('footer-nodes').textContent = n - l - 1;
+  document.getElementById('footer-radial').textContent = `⟨r⟩ ≈ ${rMean.toFixed(1)} a₀`;
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 1;
+  for (let i = 1; i <= 4; i++) {
+    const gy = pad.t + ph * (1 - i/4);
+    ctx.beginPath(); ctx.moveTo(pad.l, gy); ctx.lineTo(pad.l+pw, gy); ctx.stroke();
+  }
+
+  // Filled curve
+  ctx.beginPath();
+  ctx.moveTo(pad.l, pad.t + ph);
+  for (let i = 0; i < rs.length; i++) {
+    const px = pad.l + (rs[i] / rmax) * pw;
+    const py = pad.t + ph * (1 - vals[i]/maxVal);
+    if (i === 0) ctx.lineTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.lineTo(pad.l + pw, pad.t + ph);
+  ctx.closePath();
+
+  const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + ph);
+  grad.addColorStop(0, 'rgba(224, 108, 58, 0.5)');
+  grad.addColorStop(1, 'rgba(224, 108, 58, 0.05)');
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  ctx.strokeStyle = '#e06c3a';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for (let i = 0; i < rs.length; i++) {
+    const px = pad.l + (rs[i] / rmax) * pw;
+    const py = pad.t + ph * (1 - vals[i]/maxVal);
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+
+  // <r> line
+  const rxMean = pad.l + (rMean / rmax) * pw;
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(rxMean, pad.t); ctx.lineTo(rxMean, pad.t+ph); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.font = '9px IBM Plex Mono, monospace';
+  ctx.fillText('⟨r⟩', rxMean+3, pad.t+12);
+
+  // Axis
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(pad.l, pad.t);
+  ctx.lineTo(pad.l, pad.t+ph);
+  ctx.lineTo(pad.l+pw, pad.t+ph);
+  ctx.stroke();
+
+  // x-axis ticks
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.font = '11px IBM Plex Mono, monospace';
+  const tickCount = 5;
+  for (let i = 0; i <= tickCount; i++) {
+    const r = (i/tickCount) * rmax;
+    const px = pad.l + (i/tickCount)*pw;
+    ctx.beginPath(); ctx.moveTo(px, pad.t+ph); ctx.lineTo(px, pad.t+ph+3); ctx.stroke();
+    ctx.fillText(Math.round(r), px - 6, pad.t+ph+14);
+  }
+  ctx.fillStyle = 'rgba(255,255,255,0.2)';
+  ctx.font = '11px IBM Plex Mono, monospace';
+  ctx.fillText('r / a₀', pad.l + pw/2 - 16, pad.t+ph+28);
+
+  // y-axis label
+  ctx.save();
+  ctx.translate(12, pad.t + ph/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.textAlign = 'center';
+  ctx.font = '11px IBM Plex Mono, monospace';
+  ctx.fillStyle = 'rgba(255,255,255,0.2)';
+  ctx.fillText('r²|R_nl|²', 0, 0);
+  ctx.restore();
+
+  // ── Energy annotation (top-right of radial panel) ──
+  const E = -13.6 / (n*n);
+  ctx.textAlign = 'right';
+  ctx.font = '600 13px IBM Plex Mono, monospace';
+  ctx.fillStyle = 'rgba(224,108,58,0.9)';
+  ctx.fillText(`E${n} = −13.6/${n}² = ${E.toFixed(2)} eV`, pad.l + pw - 4, pad.t + 18);
+
+  // Energy level ladder (small inset, right side)
+  const ladderX = pad.l + pw - 6;
+  const ladderBot = pad.t + ph - 10;
+  const ladderH = ph * 0.55;
+  const E1 = -13.6;
+  ctx.textAlign = 'right';
+  ctx.font = '10px IBM Plex Mono, monospace';
+  for (let ni = 1; ni <= 4; ni++) {
+    const Ei = -13.6 / (ni*ni);
+    // Map E: E1 at bottom, E→0 at top
+    const frac = (Ei - E1) / (0 - E1); // 0 at E1, 1 at 0
+    const ly = ladderBot - frac * ladderH;
+    const isActive = (ni === n);
+    ctx.strokeStyle = isActive ? 'rgba(224,108,58,0.9)' : 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = isActive ? 2 : 1;
+    ctx.beginPath();
+    ctx.moveTo(ladderX - 30, ly);
+    ctx.lineTo(ladderX, ly);
+    ctx.stroke();
+    ctx.fillStyle = isActive ? 'rgba(224,108,58,0.9)' : 'rgba(255,255,255,0.2)';
+    ctx.fillText(`n=${ni}`, ladderX - 33, ly - 2);
+  }
+  // Vertical line for ladder
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(ladderX, ladderBot - ladderH);
+  ctx.lineTo(ladderX, ladderBot);
+  ctx.stroke();
+  // Label
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.font = '9px IBM Plex Mono, monospace';
+  ctx.fillText('Eₙ', ladderX, ladderBot - ladderH - 4);
+  ctx.textAlign = 'left';
+}
+
+// ─── UI state ────────────────────────────────────────────────────────────────
+function updateLButtons() {
+  const n = state.n;
+  const div = document.getElementById('btns-l');
+  div.innerHTML = '';
+  const lnames = ['s','p','d','f'];
+  for (let l = 0; l < n; l++) {
+    const b = document.createElement('button');
+    b.className = 'btn' + (l === state.l ? ' active' : '');
+    b.textContent = `${l}(${lnames[l]||l})`;
+    b.dataset.qn = 'l';
+    b.dataset.val = l;
+    div.appendChild(b);
+  }
+}
+
+function updateMButtons() {
+  const l = state.l;
+  const div = document.getElementById('btns-m');
+  div.innerHTML = '';
+  for (let m = -l; m <= l; m++) {
+    const b = document.createElement('button');
+    b.className = 'btn' + (m === state.m ? ' active' : '');
+    b.textContent = m > 0 ? `+${m}` : `${m}`;
+    b.dataset.qn = 'm';
+    b.dataset.val = m;
+    div.appendChild(b);
+  }
+}
+
+function updateStateDisplay() {
+  const {n, l, m} = state;
+  const subs = ['₀','₁','₂','₃','₄'];
+  const mStr = m < 0 ? `₋${Math.abs(m)}` : (subs[m] !== undefined ? subs[m] : m);
+  document.getElementById('sd-nlm').textContent = `${subs[n]||n}${subs[l]||l}${mStr}`;
+
+  const E = -13.6 / (n*n);
+  document.getElementById('sd-E').textContent = E.toFixed(2);
+  document.getElementById('sd-n-sub').textContent = n;
+  document.getElementById('sd-n2').textContent = `${n}²`;
+
+  const L = l === 0 ? '0' : (l*(l+1) === 2 ? '√2' : `√${l*(l+1)}`);
+  document.getElementById('sd-L').textContent = L;
+
+  const Lz = m === 0 ? '0' : (m > 0 ? `+${m}` : `${m}`);
+  document.getElementById('sd-Lz').textContent = Lz;
+}
+
+function draw() {
+  const {n, l, m} = state;
+  drawDensity(n, l, m);
+  drawPolar(l, m);
+  drawRadial(n, l);
+  updateStateDisplay();
+}
+
+// Button click handler
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.btn[data-qn]');
+  if (!btn) return;
+  const qn = btn.dataset.qn;
+  const val = parseInt(btn.dataset.val);
+
+  if (qn === 'n') {
+    state.n = val;
+    if (state.l >= val) state.l = val - 1;
+    if (Math.abs(state.m) > state.l) state.m = 0;
+    // Update active
+    document.querySelectorAll('#btns-n .btn').forEach(b => {
+      b.classList.toggle('active', parseInt(b.dataset.val) === state.n);
+    });
+    updateLButtons();
+    updateMButtons();
+  } else if (qn === 'l') {
+    state.l = val;
+    if (Math.abs(state.m) > state.l) state.m = 0;
+    document.querySelectorAll('#btns-l .btn').forEach(b => {
+      b.classList.toggle('active', parseInt(b.dataset.val) === state.l);
+    });
+    updateMButtons();
+  } else if (qn === 'm') {
+    state.m = val;
+    document.querySelectorAll('#btns-m .btn').forEach(b => {
+      b.classList.toggle('active', parseInt(b.dataset.val) === state.m);
+    });
+  }
+  draw();
+});
+
+// Init
+updateLButtons();
+updateMButtons();
+window.addEventListener('resize', resizeCanvases);
+// Small delay to let layout settle
+setTimeout(resizeCanvases, 80);
+</script>
+</body>
+</html>

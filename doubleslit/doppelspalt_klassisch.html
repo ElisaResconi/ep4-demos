@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Klassischer Doppelspalt — EP4</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #0a0e1a;
+  color: #e8edf5;
+  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  padding: 24px 16px;
+  min-height: 100vh;
+}
+#app { width: 100%; max-width: 980px; }
+
+.title { font-size: 17px; font-weight: 600; letter-spacing: 0.02em; margin-bottom: 3px; }
+.subtitle { font-size: 12px; color: #8899aa; margin-bottom: 16px; }
+
+.controls-bar {
+  display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end;
+  background: #111827; border: 1px solid #1e2d45;
+  border-radius: 10px; padding: 12px 16px; margin-bottom: 14px;
+}
+.ctrl-group { display: flex; flex-direction: column; gap: 4px; min-width: 130px; flex: 1; }
+.ctrl-label { font-size: 11px; color: #8899aa; letter-spacing: 0.04em; }
+.ctrl-label span { color: #e87060; font-weight: 600; }
+input[type=range] { width: 100%; accent-color: #c0392b; cursor: pointer; }
+
+.mode-indicator {
+  background: #1a0a0a;
+  border: 1.5px solid #c0392b;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 12px;
+  color: #e87060;
+  font-weight: 600;
+  display: flex; align-items: center; gap: 8px;
+  white-space: nowrap;
+}
+.mode-indicator .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #e74c3c; display: inline-block;
+}
+
+.main-grid {
+  display: grid;
+  grid-template-columns: 260px 1fr 200px;
+  gap: 12px; margin-bottom: 12px;
+}
+.panel {
+  background: #111827; border: 1px solid #1e2d45;
+  border-radius: 10px; padding: 10px;
+  display: flex; flex-direction: column; align-items: center;
+}
+.panel-label {
+  font-size: 10px; color: #8899aa;
+  letter-spacing: 0.05em; text-transform: uppercase;
+  align-self: flex-start; margin-bottom: 6px;
+}
+canvas { border-radius: 5px; display: block; }
+
+.bottom-row {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px; margin-bottom: 12px;
+}
+button {
+  background: transparent; color: #e8edf5;
+  border: 1px solid #1e2d45; border-radius: 7px;
+  padding: 7px 14px; font-size: 12px; cursor: pointer;
+  transition: all 0.15s; font-family: inherit; white-space: nowrap;
+}
+button:hover { border-color: #c0392b; color: #e87060; }
+button.primary { background: #c0392b; border-color: #c0392b; color: #fff; font-weight: 600; }
+button.primary:hover { background: #a93226; }
+button.accent { border-color: #e87060; color: #e87060; }
+button.accent:hover { background: rgba(231,76,60,0.08); }
+
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; align-items: center; }
+.counter { font-size: 12px; color: #8899aa; text-align: center; margin-top: 6px; }
+.counter span { color: #e87060; font-weight: 600; }
+.counter .slit1 { color: #e8b060; }
+.counter .slit2 { color: #60a8e8; }
+
+.msg {
+  font-size: 12px; color: #8899aa;
+  text-align: center; font-style: italic;
+  min-height: 18px; margin-top: 4px; transition: color 0.3s;
+}
+.msg.highlight { color: #e87060; }
+
+.insight {
+  background: #150a0a;
+  border: 1px solid #c0392b;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 12px; color: #c08070;
+  text-align: center; line-height: 1.6;
+}
+.insight strong { color: #e87060; }
+.insight .blue { color: #5ba3d9; }
+.tum-badge { font-size: 10px; color: #1e2d45; text-align: right; margin-top: 10px; letter-spacing: 0.08em; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="title">Klassisches Teilchen — Doppelspalt</div>
+  <div class="subtitle">Kein Wellencharakter — jedes Teilchen geht durch genau einen Spalt. Kein Interferenzmuster.</div>
+
+  <div class="controls-bar">
+    <div class="ctrl-group">
+      <div class="ctrl-label">Spaltabstand d = <span id="valD">4.0</span> &mu;m</div>
+      <input type="range" id="slD" min="1" max="10" step="0.1" value="4.0">
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-label">Spaltbreite a = <span id="valA">1.0</span> &mu;m</div>
+      <input type="range" id="slA" min="0.3" max="4" step="0.1" value="1.0">
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-label">Streuung &sigma; = <span id="valS">1.2</span> (willk.)</div>
+      <input type="range" id="slS" min="0.3" max="4" step="0.1" value="1.2">
+    </div>
+    <div class="mode-indicator">
+      <span class="dot"></span>
+      Klassisch &mdash; Teilchen, keine Wellen
+    </div>
+  </div>
+
+  <div class="main-grid">
+    <div class="panel">
+      <div class="panel-label">Aufbau</div>
+      <canvas id="cvSetup" width="240" height="420"></canvas>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Detektorschirm — Messpunkte</div>
+      <canvas id="cvScreen" width="460" height="420"></canvas>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Verteilung P(y)</div>
+      <canvas id="cvProfile" width="180" height="420"></canvas>
+    </div>
+  </div>
+
+  <div class="bottom-row">
+    <div class="panel" style="flex-direction:row; align-items:center; justify-content:center; flex-wrap:wrap; gap:8px; padding:10px 14px;">
+      <button class="primary" id="btnOne">1 Teilchen</button>
+      <button class="accent" id="btnHundred">100 Teilchen</button>
+      <button class="accent" id="btnThousand">1000 Teilchen</button>
+      <button id="btnReset">Reset</button>
+    </div>
+    <div class="panel" style="justify-content:center;">
+      <div class="counter" id="counter">
+        Teilchen: <span id="cTotal">0</span> &nbsp;|&nbsp;
+        Spalt 1: <span class="slit1" id="cS1">0</span> &nbsp;
+        Spalt 2: <span class="slit2" id="cS2">0</span>
+      </div>
+      <div class="msg" id="msg">Schicke Teilchen — jedes geht durch genau einen Spalt.</div>
+    </div>
+  </div>
+
+  <div class="insight">
+    <strong>Klassisch:</strong>
+    P(y) = &frac12; P<sub>1</sub>(y) + &frac12; P<sub>2</sub>(y) &mdash;
+    einfache Addition der Wahrscheinlichkeiten beider Spalte. Keine Interferenz.
+    &nbsp;&nbsp;|&nbsp;&nbsp;
+    <span class="blue"><strong>Quantenmechanisch:</strong>
+    |&psi;(y)|&sup2; = |&psi;<sub>1</sub> + &psi;<sub>2</sub>|&sup2; &ne;
+    |&psi;<sub>1</sub>|&sup2; + |&psi;<sub>2</sub>|&sup2; &mdash;
+    Interferenzterme erzeugen das Muster.</span>
+  </div>
+  <div class="tum-badge">TUM &mdash; Experimentalphysik 4</div>
+</div>
+
+<script>
+const SW = 460, SH = 420;
+const PW = 180, PH = 420;
+const AW = 240, AH = 420;
+const YMAX = 40;
+const L = 200;
+
+let params = { d: 4.0, a: 1.0, sigma: 1.2 };
+let particles = [];
+let count1 = 0, count2 = 0;
+let animQueue = [];
+let animating = false;
+
+// ── Classical distribution: Gaussian behind each slit ────────────────────
+// P(y) = 0.5 * G(y - d/2, sigma) + 0.5 * G(y + d/2, sigma)
+function gauss(y, mu, sigma) {
+  const d = y - mu;
+  return Math.exp(-d*d / (2*sigma*sigma));
+}
+
+function classicalP(y, p) {
+  return 0.5 * gauss(y, p.d/2, p.sigma) + 0.5 * gauss(y, -p.d/2, p.sigma);
+}
+
+// Build CDF
+const NY = 2000;
+function buildCDF(p) {
+  const ymax2 = YMAX;
+  const dy = 2*ymax2/NY;
+  const cdf = new Float64Array(NY+1);
+  let sum = 0;
+  for (let i = 0; i < NY; i++) {
+    const y = -ymax2 + (i+0.5)*dy;
+    sum += classicalP(y, p);
+    cdf[i+1] = sum;
+  }
+  for (let i = 0; i <= NY; i++) cdf[i] /= sum;
+  return { cdf, ymax: ymax2, dy, NY };
+}
+
+let cdfData = null;
+
+function sampleParticle() {
+  // Which slit? 50/50
+  const slit = Math.random() < 0.5 ? 1 : 2;
+  const mu = slit === 1 ? params.d/2 : -params.d/2;
+  // Sample from Gaussian behind that slit using Box-Muller
+  const u1 = Math.random(), u2 = Math.random();
+  const z = Math.sqrt(-2*Math.log(u1+1e-10)) * Math.cos(2*Math.PI*u2);
+  const y = mu + z * params.sigma;
+  return { y: Math.max(-YMAX*0.95, Math.min(YMAX*0.95, y)), slit };
+}
+
+// ── Canvas contexts ───────────────────────────────────────────────────────
+const ctxA = document.getElementById('cvSetup').getContext('2d');
+const ctxS = document.getElementById('cvScreen').getContext('2d');
+const ctxP = document.getElementById('cvProfile').getContext('2d');
+
+function yToPixel(y) { return SH/2 - y/YMAX * SH/2 * 0.92; }
+
+// ── Setup drawing ─────────────────────────────────────────────────────────
+function drawSetup(highlightSlit) {
+  ctxA.fillStyle = '#0a0e1a';
+  ctxA.fillRect(0, 0, AW, AH);
+
+  const blendX = 100, screenX = 210;
+  const slitY1 = AH/2 - params.d/2/YMAX * AH*0.5;
+  const slitY2 = AH/2 + params.d/2/YMAX * AH*0.5;
+  const slitH = Math.max(3, params.a/YMAX * AH*0.5);
+  const srcX = 28;
+
+  // Source
+  ctxA.fillStyle = '#c0392b';
+  ctxA.font = '11px Segoe UI, Arial, sans-serif';
+  ctxA.textAlign = 'center';
+  ctxA.fillText('Quelle', srcX, 18);
+  ctxA.beginPath();
+  ctxA.arc(srcX, AH/2, 14, 0, 2*Math.PI);
+  ctxA.strokeStyle = '#c0392b';
+  ctxA.lineWidth = 2; ctxA.stroke();
+  ctxA.fillStyle = '#200808'; ctxA.fill();
+  ctxA.fillStyle = '#e87060';
+  ctxA.font = 'bold 11px Segoe UI, Arial, sans-serif';
+  ctxA.fillText('●', srcX, AH/2+4);
+
+  // Straight trajectory lines (classical — no spreading)
+  ctxA.strokeStyle = 'rgba(232,112,96,0.2)';
+  ctxA.lineWidth = 1;
+  for (let i = -2; i <= 2; i++) {
+    ctxA.beginPath();
+    ctxA.moveTo(srcX+16, AH/2 + i*12);
+    ctxA.lineTo(blendX-2, AH/2 + i*12);
+    ctxA.stroke();
+  }
+
+  // Barrier
+  ctxA.fillStyle = '#2a3d55';
+  ctxA.fillRect(blendX-4, 0, 8, slitY1 - slitH/2);
+  ctxA.fillRect(blendX-4, slitY1+slitH/2, 8, slitY2-slitH/2-(slitY1+slitH/2));
+  ctxA.fillRect(blendX-4, slitY2+slitH/2, 8, AH-(slitY2+slitH/2));
+
+  // Slit labels with highlight
+  const col1 = highlightSlit === 1 ? '#e8b060' : '#8899aa';
+  const col2 = highlightSlit === 2 ? '#60a8e8' : '#8899aa';
+  ctxA.font = '10px Segoe UI, Arial, sans-serif';
+  ctxA.textAlign = 'left';
+  ctxA.fillStyle = col1;
+  ctxA.fillText('Spalt 1', blendX+6, slitY1);
+  ctxA.fillStyle = col2;
+  ctxA.fillText('Spalt 2', blendX+6, slitY2+4);
+
+  // Screen
+  ctxA.fillStyle = '#2a3d55';
+  ctxA.fillRect(screenX, 0, 5, AH);
+  ctxA.fillStyle = '#8899aa';
+  ctxA.font = '10px Segoe UI, Arial, sans-serif';
+  ctxA.textAlign = 'center';
+  ctxA.fillText('Schirm', screenX+2, 12);
+  ctxA.fillText('Blende', blendX, AH-6);
+
+  // d annotation
+  ctxA.strokeStyle = 'rgba(232,112,96,0.4)';
+  ctxA.lineWidth = 1; ctxA.setLineDash([3,3]);
+  ctxA.beginPath(); ctxA.moveTo(blendX-20, slitY1); ctxA.lineTo(blendX-20, slitY2); ctxA.stroke();
+  ctxA.setLineDash([]);
+  ctxA.fillStyle = '#e87060';
+  ctxA.font = '10px Segoe UI, Arial, sans-serif';
+  ctxA.textAlign = 'right';
+  ctxA.fillText('d', blendX-22, (slitY1+slitY2)/2+4);
+}
+
+// ── Profile drawing ───────────────────────────────────────────────────────
+function drawProfile() {
+  ctxP.fillStyle = '#0a0e1a';
+  ctxP.fillRect(0, 0, PW, PH);
+
+  let maxP = 0;
+  const pvals = new Float32Array(PH);
+  for (let py = 0; py < PH; py++) {
+    const y = YMAX*(1 - 2*py/PH)*0.92;
+    pvals[py] = classicalP(y, params);
+    if (pvals[py] > maxP) maxP = pvals[py];
+  }
+
+  // Fill each Gaussian separately with different colors
+  // Slit 1 (orange)
+  ctxP.beginPath();
+  for (let py = 0; py < PH; py++) {
+    const y = YMAX*(1-2*py/PH)*0.92;
+    const v = gauss(y, params.d/2, params.sigma) * 0.5;
+    const x = 8 + (v/maxP)*(PW-20);
+    if (py===0) ctxP.moveTo(x,py); else ctxP.lineTo(x,py);
+  }
+  ctxP.strokeStyle = 'rgba(232,176,96,0.9)'; ctxP.lineWidth=1.5; ctxP.stroke();
+  ctxP.lineTo(8,PH); ctxP.lineTo(8,0); ctxP.closePath();
+  ctxP.fillStyle='rgba(232,176,96,0.12)'; ctxP.fill();
+
+  // Slit 2 (blue)
+  ctxP.beginPath();
+  for (let py = 0; py < PH; py++) {
+    const y = YMAX*(1-2*py/PH)*0.92;
+    const v = gauss(y, -params.d/2, params.sigma) * 0.5;
+    const x = 8 + (v/maxP)*(PW-20);
+    if (py===0) ctxP.moveTo(x,py); else ctxP.lineTo(x,py);
+  }
+  ctxP.strokeStyle='rgba(96,168,232,0.9)'; ctxP.lineWidth=1.5; ctxP.stroke();
+  ctxP.lineTo(8,PH); ctxP.lineTo(8,0); ctxP.closePath();
+  ctxP.fillStyle='rgba(96,168,232,0.12)'; ctxP.fill();
+
+  // Total P (white)
+  ctxP.beginPath();
+  for (let py = 0; py < PH; py++) {
+    const y = YMAX*(1-2*py/PH)*0.92;
+    const v = classicalP(y, params);
+    const x = 8 + (v/maxP)*(PW-20);
+    if (py===0) ctxP.moveTo(x,py); else ctxP.lineTo(x,py);
+  }
+  ctxP.strokeStyle='rgba(232,176,176,0.7)'; ctxP.lineWidth=2; ctxP.stroke();
+
+  ctxP.strokeStyle='rgba(255,255,255,0.07)'; ctxP.lineWidth=0.5;
+  ctxP.beginPath(); ctxP.moveTo(0,PH/2); ctxP.lineTo(PW,PH/2); ctxP.stroke();
+  ctxP.fillStyle='#8899aa'; ctxP.font='10px Segoe UI,Arial,sans-serif';
+  ctxP.textAlign='left'; ctxP.fillText('P(y)',4,14);
+  ctxP.fillStyle='rgba(232,176,96,0.8)'; ctxP.fillText('— Spalt 1',4,28);
+  ctxP.fillStyle='rgba(96,168,232,0.8)'; ctxP.fillText('— Spalt 2',4,40);
+}
+
+// ── Screen ────────────────────────────────────────────────────────────────
+function clearScreen() {
+  ctxS.fillStyle='#0a0e1a'; ctxS.fillRect(0,0,SW,SH);
+  ctxS.strokeStyle='rgba(255,255,255,0.05)'; ctxS.lineWidth=0.5;
+  ctxS.beginPath(); ctxS.moveTo(0,SH/2); ctxS.lineTo(SW,SH/2); ctxS.stroke();
+
+  // Two Gaussian guides (very faint)
+  const maxP = classicalP(params.d/2, params);
+  for (let py=0; py<SH; py++) {
+    const y = YMAX*(1-2*py/SH)*0.92;
+    const g1 = gauss(y, params.d/2, params.sigma)*0.5/maxP;
+    const g2 = gauss(y, -params.d/2, params.sigma)*0.5/maxP;
+    ctxS.fillStyle=`rgba(232,176,96,${g1*0.06})`;
+    ctxS.fillRect(0,py,SW,1);
+    ctxS.fillStyle=`rgba(96,168,232,${g2*0.06})`;
+    ctxS.fillRect(0,py,SW,1);
+  }
+}
+
+function drawParticle(p, flash) {
+  const py = yToPixel(p.y);
+  const px = SW/2 + (Math.random()-0.5)*6;
+  p.px = px; p.py = py;
+  const col = p.slit===1 ? 'rgba(232,176,96,0.85)' : 'rgba(96,168,232,0.85)';
+  ctxS.beginPath(); ctxS.arc(px, py, 1.7, 0, 2*Math.PI);
+  ctxS.fillStyle=col; ctxS.fill();
+  if (flash) {
+    let frame=0;
+    function anim() {
+      if (frame>20) return;
+      const f=frame/20;
+      ctxS.beginPath(); ctxS.arc(px,py,16*(1-f),0,2*Math.PI);
+      ctxS.strokeStyle=`rgba(240,165,0,${0.8*(1-f)})`; ctxS.lineWidth=1.5; ctxS.stroke();
+      ctxS.beginPath(); ctxS.arc(px,py,2.5,0,2*Math.PI);
+      ctxS.fillStyle=p.slit===1?'#e8b060':'#60a8e8'; ctxS.fill();
+      frame++; requestAnimationFrame(anim);
+    }
+    anim();
+  }
+}
+
+// Animated single trajectory
+function animateTrajectory(p, onDone) {
+  const blendX_canvas = 260 + 12 + 100; // approx screen x of slit in screen canvas coords
+  // We animate a dot moving from left to landing point
+  const slitY = p.slit===1
+    ? SH/2 - params.d/2/YMAX*SH/2*0.92
+    : SH/2 + params.d/2/YMAX*SH/2*0.92;
+  const endY = yToPixel(p.y);
+  const endX = SW/2 + (Math.random()-0.5)*6;
+  p.px = endX; p.py = endY;
+
+  const col = p.slit===1 ? '#e8b060' : '#60a8e8';
+  const frames = 28;
+  let frame = 0;
+
+  // Draw trajectory in two segments: source→slit, slit→screen
+  function anim() {
+    if (frame > frames) { onDone(); return; }
+    const t = frame/frames;
+    // phase 1: 0→0.45 source to slit
+    // phase 2: 0.45→1 slit to screen
+    let cx, cy;
+    if (t < 0.45) {
+      const t2 = t/0.45;
+      cx = t2 * SW*0.38;
+      cy = SH/2 + (slitY-SH/2)*t2;
+    } else {
+      const t2 = (t-0.45)/0.55;
+      cx = SW*0.38 + t2*(endX - SW*0.38);
+      cy = slitY + t2*(endY-slitY);
+    }
+    // Don't clear whole screen — just draw dot
+    ctxS.beginPath(); ctxS.arc(cx, cy, 3.5, 0, 2*Math.PI);
+    ctxS.fillStyle = col; ctxS.fill();
+    // Trail fade
+    ctxS.beginPath(); ctxS.arc(cx, cy, 5, 0, 2*Math.PI);
+    ctxS.fillStyle = `rgba(${p.slit===1?'232,176,96':'96,168,232'},0.15)`; ctxS.fill();
+    frame++; requestAnimationFrame(anim);
+  }
+  anim();
+}
+
+function updateCounter() {
+  const n = particles.length;
+  document.getElementById('cTotal').textContent = n;
+  document.getElementById('cS1').textContent = count1;
+  document.getElementById('cS2').textContent = count2;
+  const msg = document.getElementById('msg');
+  if (n===0) {
+    msg.textContent='Schicke Teilchen — jedes geht durch genau einen Spalt.';
+    msg.className='msg';
+  } else if (n<10) {
+    msg.textContent=`Spalt ${particles[particles.length-1].slit} — wir wissen es immer, bei jedem Teilchen.`;
+    msg.className='msg';
+  } else if (n<200) {
+    msg.textContent='Zwei Häufungen entstehen — je eine hinter jedem Spalt.';
+    msg.className='msg';
+  } else {
+    msg.textContent='Zwei Gaußkurven — P = P₁ + P₂. Keine Interferenz. Kein Muster.';
+    msg.className='msg highlight';
+  }
+}
+
+let isSingleAnimating = false;
+
+function shootOne() {
+  if (isSingleAnimating) return;
+  isSingleAnimating = true;
+  const p = sampleParticle();
+  particles.push(p);
+  if (p.slit===1) count1++; else count2++;
+  drawSetup(p.slit);
+  animateTrajectory(p, () => {
+    drawParticle(p, true);
+    updateCounter();
+    isSingleAnimating = false;
+    drawSetup(null);
+  });
+}
+
+function shootN(n) {
+  for (let i=0; i<n; i++) {
+    const p = sampleParticle();
+    particles.push(p);
+    if (p.slit===1) count1++; else count2++;
+    drawParticle(p, false);
+  }
+  updateCounter();
+}
+
+function reset() {
+  particles=[]; count1=0; count2=0;
+  isSingleAnimating=false;
+  clearScreen(); drawSetup(null); updateCounter();
+}
+
+function fullRedraw() {
+  drawSetup(null); drawProfile(); clearScreen();
+  particles=[]; count1=0; count2=0;
+  updateCounter();
+}
+
+document.getElementById('slD').addEventListener('input', function() {
+  params.d=parseFloat(this.value);
+  document.getElementById('valD').textContent=params.d.toFixed(1);
+  fullRedraw();
+});
+document.getElementById('slA').addEventListener('input', function() {
+  params.a=parseFloat(this.value);
+  document.getElementById('valA').textContent=params.a.toFixed(1);
+  fullRedraw();
+});
+document.getElementById('slS').addEventListener('input', function() {
+  params.sigma=parseFloat(this.value);
+  document.getElementById('valS').textContent=params.sigma.toFixed(1);
+  fullRedraw();
+});
+document.getElementById('btnOne').addEventListener('click', shootOne);
+document.getElementById('btnHundred').addEventListener('click', function(){ shootN(100); });
+document.getElementById('btnThousand').addEventListener('click', function(){ shootN(1000); });
+document.getElementById('btnReset').addEventListener('click', reset);
+
+fullRedraw();
+</script>
+</body>
+</html>

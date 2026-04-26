@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wo ist das Elektron? — EP4</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0e1a;
+    color: #e8edf5;
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 30px 20px;
+  }
+  #app {
+    background: #0a0e1a;
+    width: 100%;
+    max-width: 860px;
+  }
+  .top-bar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .title {
+    font-size: 17px;
+    font-weight: 600;
+    color: #e8edf5;
+    letter-spacing: 0.02em;
+  }
+  .subtitle {
+    font-size: 12px;
+    color: #8899aa;
+    margin-top: 3px;
+  }
+  .selectors {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .sel-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+  .sel-label {
+    font-size: 12px;
+    color: #8899aa;
+    font-style: italic;
+  }
+  select {
+    background: #111827;
+    color: #e8edf5;
+    border: 1px solid #1e2d45;
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 14px;
+    cursor: pointer;
+    outline: none;
+    font-family: inherit;
+  }
+  select:hover { border-color: #0065bd; }
+  .panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .panel {
+    background: #111827;
+    border: 1px solid #1e2d45;
+    border-radius: 10px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .panel-label {
+    font-size: 11px;
+    color: #8899aa;
+    margin-bottom: 8px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    align-self: flex-start;
+  }
+  canvas {
+    border-radius: 6px;
+    display: block;
+  }
+  .controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  button {
+    background: transparent;
+    color: #e8edf5;
+    border: 1px solid #1e2d45;
+    border-radius: 7px;
+    padding: 8px 18px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  button:hover { border-color: #0065bd; color: #5ba3d9; }
+  button.primary {
+    background: #0065bd;
+    border-color: #0065bd;
+    color: #fff;
+    font-weight: 600;
+  }
+  button.primary:hover { background: #0052a0; }
+  button.accent {
+    border-color: #f0a500;
+    color: #f0a500;
+  }
+  button.accent:hover { background: rgba(240,165,0,0.1); }
+  .counter {
+    font-size: 13px;
+    color: #8899aa;
+    text-align: center;
+    margin-top: 10px;
+    min-height: 20px;
+  }
+  .counter span { color: #5ba3d9; font-weight: 600; }
+  .msg {
+    font-size: 12px;
+    color: #8899aa;
+    text-align: center;
+    margin-top: 6px;
+    font-style: italic;
+    min-height: 18px;
+    transition: color 0.3s;
+  }
+  .msg.highlight { color: #f0a500; }
+  .tum-badge {
+    font-size: 10px;
+    color: #1e2d45;
+    text-align: right;
+    margin-top: 14px;
+    letter-spacing: 0.08em;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="top-bar">
+    <div>
+      <div class="title">Wo ist das Elektron?</div>
+      <div class="subtitle">Jede Messung liefert einen Ort — viele Messungen rekonstruieren das Orbital</div>
+    </div>
+    <div class="selectors">
+      <div class="sel-group">
+        <span class="sel-label">n</span>
+        <select id="selN">
+          <option>1</option><option>2</option><option selected>3</option>
+        </select>
+      </div>
+      <div class="sel-group">
+        <span class="sel-label">&#8467;</span>
+        <select id="selL">
+          <option>0</option><option>1</option><option selected>2</option>
+        </select>
+      </div>
+      <div class="sel-group">
+        <span class="sel-label">m</span>
+        <select id="selM"><option>0</option></select>
+      </div>
+    </div>
+  </div>
+
+  <div class="panels">
+    <div class="panel">
+      <div class="panel-label">|&#968;<sub>n&#8467;m</sub>|&#178; &mdash; Wahrscheinlichkeitsdichte</div>
+      <canvas id="cvOrbit" width="380" height="380"></canvas>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Messpunkte</div>
+      <canvas id="cvMeas" width="380" height="380"></canvas>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="primary" id="btnOne">Einmal messen</button>
+    <button class="accent" id="btnHundred">100&times; messen</button>
+    <button class="accent" id="btnThousand">1000&times; messen</button>
+    <button id="btnReset">Reset</button>
+  </div>
+  <div class="counter" id="counter">Messungen: <span>0</span></div>
+  <div class="msg" id="msg">Dr&#252;cke &ldquo;Einmal messen&rdquo; &mdash; wo landet das Elektron?</div>
+  <div class="tum-badge">TUM &mdash; Experimentalphysik 4</div>
+</div>
+
+<script>
+const a0 = 1;
+const W = 380;
+
+function laguerre(n, alpha, x) {
+  if (n === 0) return 1;
+  if (n === 1) return 1 + alpha - x;
+  let Lm1 = 1, L = 1 + alpha - x;
+  for (let k = 1; k < n; k++) {
+    let tmp = ((2*k+1+alpha-x)*L - (k+alpha)*Lm1) / (k+1);
+    Lm1 = L; L = tmp;
+  }
+  return L;
+}
+
+function factorial(n) {
+  if (n <= 1) return 1;
+  let r = 1;
+  for (let i = 2; i <= n; i++) r *= i;
+  return r;
+}
+
+function Rnl(n, l, r) {
+  const rho = 2 * r / (n * a0);
+  const norm = Math.sqrt(
+    Math.pow(2 / (n * a0), 3) *
+    factorial(n - l - 1) / (2 * n * Math.pow(factorial(n + l), 3))
+  );
+  return norm * Math.exp(-rho / 2) * Math.pow(rho, l) * laguerre(n - l - 1, 2 * l + 1, rho);
+}
+
+function legendreP(l, m, x) {
+  const am = Math.abs(m);
+  let pmm = 1;
+  if (am > 0) {
+    const sx = Math.sqrt((1 - x) * (1 + x));
+    let fact = 1;
+    for (let i = 1; i <= am; i++) { pmm *= -fact * sx; fact += 2; }
+  }
+  if (l === am) return pmm;
+  let pmmp1 = x * (2 * am + 1) * pmm;
+  if (l === am + 1) return pmmp1;
+  let pll = 0;
+  for (let ll = am + 2; ll <= l; ll++) {
+    pll = (x * (2 * ll - 1) * pmmp1 - (ll + am - 1) * pmm) / (ll - am);
+    pmm = pmmp1; pmmp1 = pll;
+  }
+  return pll;
+}
+
+function Ylm2(l, m, theta) {
+  const am = Math.abs(m);
+  const cosT = Math.cos(theta);
+  const P = legendreP(l, am, cosT);
+  const norm = (2 * l + 1) / (4 * Math.PI) * factorial(l - am) / factorial(l + am);
+  return norm * P * P;
+}
+
+let state = { n: 3, l: 2, m: 0 };
+let points = [];
+let radialCDF = null;
+let thetaCDF = null;
+
+function buildRadialCDF(n, l) {
+  const N = 2000;
+  const rmax = (n * n * (n + 2)) * 2.5;
+  const dr = rmax / N;
+  const cdf = new Float64Array(N + 1);
+  let sum = 0;
+  for (let i = 0; i < N; i++) {
+    const r = (i + 0.5) * dr;
+    const R = Rnl(n, l, r);
+    sum += r * r * R * R * dr;
+    cdf[i + 1] = sum;
+  }
+  for (let i = 0; i <= N; i++) cdf[i] /= sum;
+  return { cdf, rmax, dr, N };
+}
+
+function buildThetaCDF(l, m) {
+  const N = 1000;
+  const dt = Math.PI / N;
+  const cdf = new Float64Array(N + 1);
+  let sum = 0;
+  for (let i = 0; i < N; i++) {
+    const t = (i + 0.5) * dt;
+    sum += Math.sin(t) * Ylm2(l, m, t) * dt;
+    cdf[i + 1] = sum;
+  }
+  for (let i = 0; i <= N; i++) cdf[i] /= sum;
+  return { cdf, N, dt };
+}
+
+function sampleCDF(obj) {
+  const u = Math.random();
+  let lo = 0, hi = obj.N;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (obj.cdf[mid] < u) lo = mid; else hi = mid;
+  }
+  const t = (u - obj.cdf[lo]) / (obj.cdf[hi] - obj.cdf[lo] + 1e-30);
+  return (lo + t) * (obj.dr !== undefined ? obj.dr : obj.dt);
+}
+
+function samplePoint() {
+  const r = sampleCDF(radialCDF);
+  const theta = sampleCDF(thetaCDF);
+  const phi = Math.random() * 2 * Math.PI;
+  const x = r * Math.sin(theta) * Math.cos(phi);
+  const z = r * Math.cos(theta);
+  return { x, z };
+}
+
+function rebuildCDFs() {
+  radialCDF = buildRadialCDF(state.n, state.l);
+  thetaCDF = buildThetaCDF(state.l, state.m);
+}
+
+function getScale() {
+  return W / (radialCDF.rmax * 2.2);
+}
+
+function worldToCanvas(val, scale) {
+  return W / 2 + val * scale;
+}
+
+const cvO = document.getElementById('cvOrbit');
+const ctxO = cvO.getContext('2d');
+const cvM = document.getElementById('cvMeas');
+const ctxM = cvM.getContext('2d');
+
+function drawOrbital() {
+  const scale = getScale();
+  const imgData = ctxO.createImageData(W, W);
+  const d = imgData.data;
+  let maxVal = 0;
+  const vals = new Float32Array(W * W);
+  for (let py = 0; py < W; py++) {
+    for (let px = 0; px < W; px++) {
+      const x = (px - W / 2) / scale;
+      const z = (W / 2 - py) / scale;
+      const r = Math.sqrt(x * x + z * z);
+      if (r < 1e-8) { vals[py * W + px] = 0; continue; }
+      const theta = Math.acos(Math.max(-1, Math.min(1, z / r)));
+      const R = Rnl(state.n, state.l, r);
+      const Y2 = Ylm2(state.l, state.m, theta);
+      const v = r * r * R * R * Y2;
+      vals[py * W + px] = v;
+      if (v > maxVal) maxVal = v;
+    }
+  }
+  for (let i = 0; i < W * W; i++) {
+    const t = Math.pow(vals[i] / maxVal, 0.45);
+    const idx = i * 4;
+    d[idx]     = Math.round(t * 30  + (1 - t) * 10);
+    d[idx + 1] = Math.round(t * 120 + (1 - t) * 14);
+    d[idx + 2] = Math.round(t * 220 + (1 - t) * 26);
+    d[idx + 3] = 255;
+  }
+  ctxO.putImageData(imgData, 0, 0);
+  ctxO.strokeStyle = 'rgba(255,255,255,0.07)';
+  ctxO.lineWidth = 0.5;
+  ctxO.beginPath(); ctxO.moveTo(W/2, 0); ctxO.lineTo(W/2, W); ctxO.stroke();
+  ctxO.beginPath(); ctxO.moveTo(0, W/2); ctxO.lineTo(W, W/2); ctxO.stroke();
+}
+
+function drawMeasCanvas() {
+  ctxM.fillStyle = '#0a0e1a';
+  ctxM.fillRect(0, 0, W, W);
+  ctxM.strokeStyle = 'rgba(255,255,255,0.07)';
+  ctxM.lineWidth = 0.5;
+  ctxM.beginPath(); ctxM.moveTo(W/2, 0); ctxM.lineTo(W/2, W); ctxM.stroke();
+  ctxM.beginPath(); ctxM.moveTo(0, W/2); ctxM.lineTo(W, W/2); ctxM.stroke();
+}
+
+function drawPoints(newOnes) {
+  const scale = getScale();
+  if (newOnes) {
+    for (const p of newOnes) {
+      const px = worldToCanvas(p.x, scale);
+      const py = worldToCanvas(-p.z, scale);
+      ctxM.beginPath();
+      ctxM.arc(px, py, 1.8, 0, 2 * Math.PI);
+      ctxM.fillStyle = 'rgba(80,170,255,0.8)';
+      ctxM.fill();
+    }
+  } else {
+    drawMeasCanvas();
+    for (const p of points) {
+      const px = worldToCanvas(p.x, scale);
+      const py = worldToCanvas(-p.z, scale);
+      ctxM.beginPath();
+      ctxM.arc(px, py, 1.8, 0, 2 * Math.PI);
+      ctxM.fillStyle = 'rgba(80,170,255,0.8)';
+      ctxM.fill();
+    }
+  }
+}
+
+function flashPoint(p) {
+  const scale = getScale();
+  const px = worldToCanvas(p.x, scale);
+  const py = worldToCanvas(-p.z, scale);
+  let frame = 0;
+  function animate() {
+    if (frame > 22) return;
+    const f = frame / 22;
+    ctxM.clearRect(px - 28, py - 28, 56, 56);
+    ctxM.fillStyle = 'rgba(80,170,255,0.8)';
+    for (const pt of points) {
+      const ppx = worldToCanvas(pt.x, scale);
+      const ppy = worldToCanvas(-pt.z, scale);
+      if (Math.abs(ppx - px) < 28 && Math.abs(ppy - py) < 28) {
+        ctxM.beginPath(); ctxM.arc(ppx, ppy, 1.8, 0, 2 * Math.PI); ctxM.fill();
+      }
+    }
+    ctxM.beginPath();
+    ctxM.arc(px, py, 18 * (1 - f), 0, 2 * Math.PI);
+    ctxM.strokeStyle = `rgba(240,165,0,${0.9 * (1 - f)})`;
+    ctxM.lineWidth = 2;
+    ctxM.stroke();
+    ctxM.beginPath();
+    ctxM.arc(px, py, 3, 0, 2 * Math.PI);
+    ctxM.fillStyle = '#f0a500';
+    ctxM.fill();
+    frame++;
+    requestAnimationFrame(animate);
+  }
+  animate();
+}
+
+function updateCounter() {
+  const n = points.length;
+  document.getElementById('counter').innerHTML = 'Messungen: <span>' + n + '</span>';
+  const msg = document.getElementById('msg');
+  if (n === 0) {
+    msg.textContent = 'Dr\u00FCcke \u201EEinmal messen\u201C \u2014 wo landet das Elektron?';
+    msg.className = 'msg';
+  } else if (n < 10) {
+    msg.textContent = 'Jeder Punkt: ein m\u00F6glicher Aufenthaltsort nach einer Messung.';
+    msg.className = 'msg';
+  } else if (n < 100) {
+    msg.textContent = 'Eine Form beginnt sich abzuzeichnen\u2026';
+    msg.className = 'msg';
+  } else if (n < 500) {
+    msg.textContent = 'Das Orbital taucht aus den Messpunkten auf!';
+    msg.className = 'msg highlight';
+  } else {
+    msg.textContent = 'Viele Messungen \u2192 |\u03C8|\u00B2. Die Statistik ist das Orbital.';
+    msg.className = 'msg highlight';
+  }
+}
+
+function measureOne() {
+  const p = samplePoint();
+  points.push(p);
+  drawPoints([p]);
+  flashPoint(p);
+  updateCounter();
+}
+
+function measureN(n) {
+  const batch = [];
+  for (let i = 0; i < n; i++) {
+    const p = samplePoint();
+    points.push(p);
+    batch.push(p);
+  }
+  drawPoints(batch);
+  updateCounter();
+}
+
+function reset() {
+  points = [];
+  drawMeasCanvas();
+  updateCounter();
+}
+
+function updateSelectors() {
+  const n = parseInt(document.getElementById('selN').value);
+  const lSel = document.getElementById('selL');
+  const mSel = document.getElementById('selM');
+  const curL = parseInt(lSel.value) || 0;
+  lSel.innerHTML = '';
+  for (let l = 0; l < n; l++) {
+    const o = document.createElement('option');
+    o.value = l; o.textContent = l;
+    if (l === Math.min(curL, n - 1)) o.selected = true;
+    lSel.appendChild(o);
+  }
+  const l = parseInt(lSel.value);
+  const curM = parseInt(mSel.value) || 0;
+  mSel.innerHTML = '';
+  for (let m = -l; m <= l; m++) {
+    const o = document.createElement('option');
+    o.value = m; o.textContent = m;
+    if (m === Math.max(-l, Math.min(curM, l))) o.selected = true;
+    mSel.appendChild(o);
+  }
+  state.n = n;
+  state.l = parseInt(lSel.value);
+  state.m = parseInt(mSel.value);
+}
+
+function onStateChange() {
+  updateSelectors();
+  state.n = parseInt(document.getElementById('selN').value);
+  state.l = parseInt(document.getElementById('selL').value);
+  state.m = parseInt(document.getElementById('selM').value);
+  rebuildCDFs();
+  drawOrbital();
+  reset();
+}
+
+document.getElementById('selN').addEventListener('change', onStateChange);
+document.getElementById('selL').addEventListener('change', function() {
+  const l = parseInt(this.value);
+  const mSel = document.getElementById('selM');
+  const curM = parseInt(mSel.value) || 0;
+  mSel.innerHTML = '';
+  for (let m = -l; m <= l; m++) {
+    const o = document.createElement('option');
+    o.value = m; o.textContent = m;
+    if (m === Math.max(-l, Math.min(curM, l))) o.selected = true;
+    mSel.appendChild(o);
+  }
+  state.l = l;
+  state.m = parseInt(mSel.value);
+  rebuildCDFs();
+  drawOrbital();
+  reset();
+});
+document.getElementById('selM').addEventListener('change', function() {
+  state.m = parseInt(this.value);
+  rebuildCDFs();
+  drawOrbital();
+  reset();
+});
+
+document.getElementById('btnOne').addEventListener('click', measureOne);
+document.getElementById('btnHundred').addEventListener('click', function() { measureN(100); });
+document.getElementById('btnThousand').addEventListener('click', function() { measureN(1000); });
+document.getElementById('btnReset').addEventListener('click', reset);
+
+updateSelectors();
+rebuildCDFs();
+drawOrbital();
+drawMeasCanvas();
+updateCounter();
+</script>
+</body>
+</html>

@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zeeman-Effekt | Wasserstoff im Magnetfeld</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap');
+
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --border: #1e2229;
+    --accent: #3b8beb;
+    --accent2: #e06c3a;
+    --text: #c8cdd6;
+    --text-dim: #5a6070;
+    --text-bright: #eef0f4;
+    --panel-bg: #0d1016;
+    --tum-blue: #3070b3;
+    --b-color: #a78bfa;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 300;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  header {
+    padding: 12px 24px 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+  header h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  header .subtitle {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--tum-blue);
+  }
+
+  /* ── Controls ── */
+  .controls-bar {
+    padding: 8px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+  .qn-group { display: flex; align-items: center; gap: 8px; }
+  .qn-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px; color: var(--text-dim); font-style: italic;
+  }
+  .btn-group { display: flex; gap: 3px; }
+  .btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px; padding: 3px 9px;
+    cursor: pointer; transition: all 0.15s; border-radius: 2px;
+  }
+  .btn:hover { background: var(--border); color: var(--text); }
+  .btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* ── B-field control ── */
+  .b-control {
+    display: flex; align-items: center; gap: 10px;
+    padding-left: 18px; border-left: 1px solid var(--border);
+  }
+  .b-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px; color: var(--b-color); white-space: nowrap;
+  }
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 150px; height: 3px;
+    background: linear-gradient(to right, var(--b-color) 0%, var(--b-color) var(--fill,0%), var(--border) var(--fill,0%));
+    border-radius: 2px; outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 13px; height: 13px; border-radius: 50%;
+    background: var(--b-color);
+    border: 2px solid var(--bg);
+    box-shadow: 0 0 6px rgba(167,139,250,0.5);
+  }
+  .b-val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px; color: var(--text-bright); min-width: 48px;
+  }
+  .b-zero-btn {
+    background: none; border: 1px solid var(--border);
+    color: var(--text-dim); font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; padding: 2px 7px; cursor: pointer;
+    border-radius: 2px; transition: all 0.15s;
+  }
+  .b-zero-btn:hover { border-color: var(--b-color); color: var(--b-color); }
+
+  /* ── State display ── */
+  .state-display {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px; color: var(--text-dim);
+    margin-left: auto; display: flex; align-items: center; gap: 5px;
+  }
+  .hi { color: var(--accent); }
+  .hi-b { color: var(--b-color); }
+  .hi-e { color: var(--accent2); }
+
+  /* ── Main layout ── */
+  .main-layout {
+    display: grid;
+    grid-template-columns: 260px 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* ── Left column: orbital thumbnails ── */
+  .orbitals-column {
+    background: var(--panel-bg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .orbitals-header {
+    padding: 8px 12px 6px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .panel-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; font-weight: 500;
+    color: var(--accent); letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .panel-title.zeeman { color: var(--b-color); }
+  .panel-formula {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: var(--text-dim); margin-top: 2px;
+  }
+
+  /* The scrollable thumbnails area */
+  .thumbnails-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .thumbnails-area::-webkit-scrollbar { width: 4px; }
+  .thumbnails-area::-webkit-scrollbar-track { background: transparent; }
+  .thumbnails-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* One thumbnail row */
+  .thumb-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 6px;
+    border-radius: 3px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .thumb-row:hover { background: rgba(255,255,255,0.03); }
+  .thumb-row.selected {
+    border-color: rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.04);
+  }
+
+  .thumb-canvas-wrap {
+    position: relative;
+    flex-shrink: 0;
+  }
+  .thumb-canvas-wrap canvas {
+    display: block;
+    border-radius: 2px;
+  }
+
+  /* B-unchanged indicator */
+  .b-unchanged-badge {
+    position: absolute;
+    top: 2px; right: 2px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: rgba(167,139,250,0.0);
+    transition: background 0.3s;
+  }
+  .b-active .b-unchanged-badge {
+    background: rgba(167,139,250,0.5);
+  }
+
+  .thumb-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .thumb-m-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px; font-weight: 500;
+  }
+  .thumb-e-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: var(--text-dim);
+    margin-top: 2px;
+    transition: color 0.3s;
+  }
+  .thumb-de-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--b-color);
+    margin-top: 1px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .b-active .thumb-de-label { opacity: 1; }
+
+  /* "B hat keine Wirkung auf Form" note */
+  .no-change-note {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: rgba(167,139,250,0.0);
+    text-align: center;
+    padding: 4px 8px;
+    margin-top: 2px;
+    border-top: 1px solid transparent;
+    transition: color 0.4s, border-color 0.4s;
+    flex-shrink: 0;
+  }
+  .b-active .no-change-note {
+    color: rgba(167,139,250,0.55);
+    border-color: rgba(167,139,250,0.12);
+  }
+
+  /* ── Middle panel: Zeeman energy diagram ── */
+  .zeeman-panel {
+    background: var(--panel-bg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .zeeman-header {
+    padding: 8px 12px 6px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  /* ── Right panel: radial ── */
+  .radial-panel {
+    background: var(--panel-bg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .radial-header {
+    padding: 8px 12px 6px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  canvas.main-canvas {
+    display: block;
+    flex: 1;
+    width: 100%;
+    min-height: 0;
+  }
+
+  .panel-footer {
+    padding: 4px 12px;
+    border-top: 1px solid var(--border);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: var(--text-dim);
+    display: flex; justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  /* top glow */
+  .b-glow {
+    position: fixed; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--b-color), transparent);
+    opacity: 0; transition: opacity 0.4s; pointer-events: none; z-index: 100;
+  }
+  .b-glow.on { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="b-glow" id="bGlow"></div>
+
+<header>
+  <h1>Wasserstoff im Magnetfeld — Zeeman-Effekt</h1>
+  <div class="subtitle">Exp. Phy. 4 · TUM · Prof. Resconi</div>
+</header>
+
+<div class="controls-bar">
+  <div class="qn-group">
+    <span class="qn-label">n</span>
+    <div class="btn-group" id="btns-n">
+      <button class="btn" data-qn="n" data-val="1">1</button>
+      <button class="btn active" data-qn="n" data-val="2">2</button>
+      <button class="btn" data-qn="n" data-val="3">3</button>
+    </div>
+  </div>
+  <div class="qn-group">
+    <span class="qn-label">ℓ</span>
+    <div class="btn-group" id="btns-l"></div>
+  </div>
+
+  <div class="b-control">
+    <span class="b-label">B⃗ =</span>
+    <input type="range" id="bSlider" min="0" max="50" value="0" step="0.5">
+    <span class="b-val" id="bVal">0.0 T</span>
+    <button class="b-zero-btn" id="bZeroBtn">B = 0</button>
+  </div>
+
+  <div class="state-display" id="stateDisplay">
+    ψ<span class="hi" id="sd-nlm">₂₁₀</span>
+    &nbsp;·&nbsp; E = <span class="hi-e" id="sd-E">−3.40</span> eV
+    &nbsp;·&nbsp; ΔE = <span class="hi-b" id="sd-dE">0</span>
+  </div>
+</div>
+
+<div class="main-layout" id="mainLayout">
+
+  <!-- LEFT: orbital thumbnails column -->
+  <div class="orbitals-column" id="orbitalsColumn">
+    <div class="orbitals-header">
+      <div class="panel-title">Orbitale |ψ_nlm|²</div>
+      <div class="panel-formula" id="orb-formula">alle m für ℓ = 1</div>
+    </div>
+    <div class="thumbnails-area" id="thumbnailsArea"></div>
+    <div class="no-change-note" id="noChangeNote">
+      ↑ Form unverändert — B wirkt nur auf Energie
+    </div>
+  </div>
+
+  <!-- MIDDLE: Zeeman energy diagram -->
+  <div class="zeeman-panel">
+    <div class="zeeman-header">
+      <div class="panel-title zeeman">Zeeman-Aufspaltung</div>
+      <div class="panel-formula" id="zeeman-formula">E_m = E_n + m · μ_B · B</div>
+    </div>
+    <canvas class="main-canvas" id="cvZeeman"></canvas>
+    <div class="panel-footer">
+      <span>μ_B = 5.788 × 10⁻² meV/T</span>
+      <span id="footer-zeeman-de" style="color:var(--b-color)">ΔE = 0</span>
+    </div>
+  </div>
+
+  <!-- RIGHT: Radial function -->
+  <div class="radial-panel">
+    <div class="radial-header">
+      <div class="panel-title">Radialfunktion</div>
+      <div class="panel-formula">r²|R_nl(r)|² — gleich für alle m</div>
+    </div>
+    <canvas class="main-canvas" id="cvRadial"></canvas>
+    <div class="panel-footer">
+      <span>Radialknoten: <span id="footer-nodes">0</span></span>
+      <span id="footer-radial">⟨r⟩ = — a₀</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── Constants ────────────────────────────────────────────────────────────────
+const MU_B_meV = 5.7883818e-2;  // meV/T
+const MU_B_eV  = 5.7883818e-5;  // eV/T
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let state = { n: 2, l: 1, m: 0, B: 0 };
+
+// ─── Math ─────────────────────────────────────────────────────────────────────
+function factorial(n) {
+  if (n <= 1) return 1;
+  let r = 1; for (let i = 2; i <= n; i++) r *= i; return r;
+}
+
+function assocLaguerre(k, alpha, x) {
+  if (k === 0) return 1;
+  if (k === 1) return 1 + alpha - x;
+  let L0 = 1, L1 = 1 + alpha - x;
+  for (let i = 2; i <= k; i++) {
+    const L2 = ((2*i-1+alpha-x)*L1 - (i-1+alpha)*L0) / i;
+    L0 = L1; L1 = L2;
+  }
+  return L1;
+}
+
+function R_nl(n, l, r) {
+  const rho = 2*r/n;
+  if (n-l-1 < 0) return 0;
+  const norm2 = Math.sqrt(Math.pow(2/n,3)*factorial(n-l-1)/(2*n*factorial(n+l)));
+  return norm2 * Math.exp(-rho/2) * Math.pow(rho,l) * assocLaguerre(n-l-1, 2*l+1, rho);
+}
+
+function assocLegendre(l, m, x) {
+  const absm = Math.abs(m);
+  let pmm = 1;
+  if (absm > 0) {
+    const s = Math.sqrt((1-x)*(1+x));
+    let f = 1;
+    for (let i = 1; i <= absm; i++) { pmm *= -f*s; f += 2; }
+  }
+  if (l === absm) return pmm;
+  let p1 = x*(2*absm+1)*pmm;
+  if (l === absm+1) return p1;
+  let pll = 0;
+  for (let ll = absm+2; ll <= l; ll++) {
+    pll = (x*(2*ll-1)*p1 - (ll+absm-1)*pmm)/(ll-absm);
+    pmm = p1; p1 = pll;
+  }
+  return pll;
+}
+
+function psi2_xz(n, l, m, x, z) {
+  const r = Math.sqrt(x*x + z*z);
+  const theta = Math.acos(Math.max(-1, Math.min(1, z/(r+1e-12))));
+  const Rv = R_nl(n, l, r);
+  const absm = Math.abs(m);
+  const norm = Math.sqrt((2*l+1)/(4*Math.PI)*factorial(l-absm)/factorial(l+absm));
+  const P = assocLegendre(l, absm, Math.cos(theta));
+  const Y = norm * P;
+  return Rv*Rv*Y*Y * (m===0 ? 1 : 2);
+}
+
+// ─── Color map ────────────────────────────────────────────────────────────────
+function densityColor(t) {
+  t = Math.min(1, Math.max(0, t));
+  if (t < 0.02) return [10,12,16];
+  if (t < 0.15) { const s=(t-0.02)/0.13; return [10+s*10, 12+s*40, 16+s*100].map(Math.round); }
+  if (t < 0.5)  { const s=(t-0.15)/0.35; return [20+s*20, 52+s*80, 116+s*80].map(Math.round); }
+  const s=(t-0.5)/0.5; return [40+s*215, 132+s*118, 196+s*59].map(Math.round);
+}
+
+// ─── Draw orbital into a canvas (used for thumbnails) ─────────────────────────
+function drawOrbital(canvas, n, l, m) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const rmax = Math.max(12, n*n*5);
+  const img = ctx.createImageData(W, H);
+  const vals = new Float32Array(W*H);
+  let maxV = 0;
+  for (let py = 0; py < H; py++) {
+    for (let px = 0; px < W; px++) {
+      const x = (px/W-0.5)*2*rmax;
+      const z = (0.5-py/H)*2*rmax;
+      const v = psi2_xz(n, l, m, x, z);
+      vals[py*W+px] = v;
+      if (v > maxV) maxV = v;
+    }
+  }
+  if (maxV === 0) maxV = 1;
+  for (let i = 0; i < W*H; i++) {
+    const t = Math.pow(vals[i]/maxV, 0.35);
+    const [r,g,b] = densityColor(t);
+    const idx = i*4;
+    img.data[idx]=r; img.data[idx+1]=g; img.data[idx+2]=b; img.data[idx+3]=255;
+  }
+  ctx.putImageData(img, 0, 0);
+  // tiny axes
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+  ctx.lineWidth = 0.5; ctx.setLineDash([2,2]);
+  ctx.beginPath();
+  ctx.moveTo(W/2,1); ctx.lineTo(W/2,H-1);
+  ctx.moveTo(1,H/2); ctx.lineTo(W-1,H/2);
+  ctx.stroke(); ctx.setLineDash([]);
+}
+
+// ─── m color ─────────────────────────────────────────────────────────────────
+function mColor(m, l) {
+  if (l === 0) return 'rgba(255,255,255,1)';
+  const t = (m+l)/(2*l);
+  return `rgba(${Math.round(220-t*140)},${Math.round(80+t*160)},${Math.round(80+(1-Math.abs(2*t-1))*80)},1)`;
+}
+
+// ─── Build thumbnails ─────────────────────────────────────────────────────────
+let thumbData = []; // {m, canvas, eLabel, dELabel}
+
+function buildThumbnails() {
+  const {n, l, B} = state;
+  const area = document.getElementById('thumbnailsArea');
+  area.innerHTML = '';
+  thumbData = [];
+
+  document.getElementById('orb-formula').textContent =
+    l === 0 ? 'ℓ=0 → nur m=0' : `alle ${2*l+1} Zustände für ℓ=${l}`;
+
+  const mVals = [];
+  for (let mi = l; mi >= -l; mi--) mVals.push(mi); // top to bottom: +l … -l
+
+  // Thumbnail size: fit nicely in 260px column
+  const available = area.clientHeight || 300;
+  const tSize = Math.min(80, Math.max(50, Math.floor((available - mVals.length*14) / mVals.length)));
+
+  mVals.forEach(mi => {
+    const col = mColor(mi, l);
+    const isSelected = mi === state.m;
+
+    const row = document.createElement('div');
+    row.className = 'thumb-row' + (isSelected ? ' selected' : '');
+    row.dataset.m = mi;
+
+    // canvas
+    const wrap = document.createElement('div');
+    wrap.className = 'thumb-canvas-wrap' + (B > 0 ? ' b-active' : '');
+    const cv = document.createElement('canvas');
+    cv.width = tSize; cv.height = tSize;
+    cv.style.width = tSize+'px'; cv.style.height = tSize+'px';
+
+    const badge = document.createElement('div');
+    badge.className = 'b-unchanged-badge';
+    badge.title = 'Form B-unabhängig';
+
+    wrap.appendChild(cv);
+    wrap.appendChild(badge);
+    drawOrbital(cv, n, l, mi);
+
+    // info
+    const info = document.createElement('div');
+    info.className = 'thumb-info';
+
+    const mLabel = document.createElement('div');
+    mLabel.className = 'thumb-m-label';
+    mLabel.style.color = col;
+    const mSign = mi > 0 ? '+' : '';
+    mLabel.textContent = `m = ${mSign}${mi}`;
+
+    const eLabel = document.createElement('div');
+    eLabel.className = 'thumb-e-label';
+    const En = -13.6/(n*n);
+    eLabel.textContent = `E = ${En.toFixed(3)} eV`;
+
+    const dELabel = document.createElement('div');
+    dELabel.className = 'thumb-de-label' + (B > 0 ? '' : '');
+    dELabel.style.color = col;
+    if (B > 0) {
+      const dE = mi * MU_B_meV * B;
+      dELabel.textContent = `ΔE = ${dE >= 0 ? '+' : ''}${dE.toFixed(2)} meV`;
+      dELabel.style.opacity = '1';
+      eLabel.textContent = `E = ${(En + mi*MU_B_eV*B).toFixed(4)} eV`;
+      eLabel.style.color = col.replace('1)', '0.7)');
+    } else {
+      dELabel.style.opacity = '0';
+    }
+
+    info.appendChild(mLabel);
+    info.appendChild(eLabel);
+    info.appendChild(dELabel);
+
+    row.appendChild(wrap);
+    row.appendChild(info);
+    area.appendChild(row);
+
+    row.addEventListener('click', () => {
+      state.m = mi;
+      rebuildThumbHighlight();
+      drawZeeman(state.n, state.l, state.m, state.B);
+      updateStateDisplay();
+    });
+
+    thumbData.push({ m: mi, canvas: cv, eLabel, dELabel, wrap, row });
+  });
+
+  // no-change note
+  document.getElementById('noChangeNote').className =
+    'no-change-note' + (B > 0 ? ' b-active' : '');
+}
+
+function rebuildThumbHighlight() {
+  thumbData.forEach(d => {
+    d.row.classList.toggle('selected', d.m === state.m);
+  });
+}
+
+function updateThumbEnergies() {
+  const {n, l, B} = state;
+  const En = -13.6/(n*n);
+  const isB = B > 0;
+  thumbData.forEach(d => {
+    const col = mColor(d.m, l);
+    if (isB) {
+      const dE = d.m * MU_B_meV * B;
+      d.eLabel.textContent = `E = ${(En + d.m*MU_B_eV*B).toFixed(4)} eV`;
+      d.eLabel.style.color = col.replace('1)', '0.7)');
+      d.dELabel.textContent = `ΔE = ${dE >= 0 ? '+' : ''}${dE.toFixed(2)} meV`;
+      d.dELabel.style.opacity = '1';
+      d.wrap.classList.add('b-active');
+    } else {
+      d.eLabel.textContent = `E = ${En.toFixed(3)} eV`;
+      d.eLabel.style.color = '';
+      d.dELabel.style.opacity = '0';
+      d.wrap.classList.remove('b-active');
+    }
+  });
+  document.getElementById('noChangeNote').classList.toggle('b-active', isB);
+}
+
+// ─── Zeeman diagram ───────────────────────────────────────────────────────────
+function drawZeeman(n, l, m, B) {
+  const cv = document.getElementById('cvZeeman');
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0,0,W,H);
+
+  const pad = {l:30, r:24, t:28, b:36};
+  const pw = W-pad.l-pad.r;
+  const ph = H-pad.t-pad.b;
+
+  const En = -13.6/(n*n);
+  const Bmax = 50;
+  const spread = l===0 ? MU_B_eV*Bmax*0.6 : l*MU_B_eV*Bmax*1.5;
+  const Emin = En-spread, Emax = En+spread;
+  const Er = Emax-Emin;
+
+  function eY(e) { return pad.t + ph*(1-(e-Emin)/Er); }
+
+  // Subtle B glow background
+  if (B > 0) {
+    const a = Math.min(0.06, 0.003*B);
+    const g = ctx.createLinearGradient(0,0,W,0);
+    g.addColorStop(0,'transparent');
+    g.addColorStop(0.5,`rgba(167,139,250,${a*4})`);
+    g.addColorStop(1,'transparent');
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+  }
+
+  // grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)'; ctx.lineWidth = 1;
+  for (let i=0; i<=5; i++) {
+    const gy = pad.t+ph*(i/5);
+    ctx.beginPath(); ctx.moveTo(pad.l,gy); ctx.lineTo(pad.l+pw,gy); ctx.stroke();
+  }
+
+  const y0 = eY(En);
+  // E_n dashed reference
+  ctx.strokeStyle='rgba(255,255,255,0.07)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(pad.l,y0); ctx.lineTo(pad.l+pw,y0); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Column x positions
+  const xL = pad.l + pw*0.22;  // B=0
+  const xR = pad.l + pw*0.78;  // B≠0
+  const lw = 26; // half-width of level lines
+
+  const mVals = [];
+  for (let mi=-l; mi<=l; mi++) mVals.push(mi);
+
+  // B value display
+  ctx.textAlign = 'center'; ctx.font = '11px IBM Plex Mono, monospace';
+  if (B > 0) {
+    ctx.fillStyle = 'rgba(167,139,250,0.75)';
+    ctx.fillText(`B = ${B.toFixed(1)} T`, xR, pad.t-10);
+  } else {
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.fillText('B > 0', xR, pad.t-10);
+  }
+  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  ctx.fillText('B = 0', xL, pad.t-10);
+
+  if (l === 0) {
+    // No splitting
+    ctx.strokeStyle='rgba(255,255,255,0.5)'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(xL-lw,y0); ctx.lineTo(xL+lw,y0); ctx.stroke();
+    ctx.strokeStyle='rgba(255,255,255,0.35)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(xR-lw,y0); ctx.lineTo(xR+lw,y0); ctx.stroke();
+    if (B>0) {
+      ctx.strokeStyle='rgba(255,255,255,0.12)'; ctx.lineWidth=1; ctx.setLineDash([2,3]);
+      ctx.beginPath(); ctx.moveTo(xL,y0); ctx.lineTo(xR,y0); ctx.stroke(); ctx.setLineDash([]);
+    }
+    ctx.fillStyle='rgba(167,139,250,0.5)'; ctx.font='10px IBM Plex Mono, monospace';
+    ctx.textAlign='center';
+    ctx.fillText('ℓ=0 → keine Aufspaltung', (xL+xR)/2, y0+22);
+    ctx.fillText('(m=0 immer)', (xL+xR)/2, y0+35);
+  } else {
+    // Fan out lines B=0→B
+    if (B > 0) {
+      mVals.forEach(mi => {
+        const Em = En + mi*MU_B_eV*B;
+        const alpha = 0.06 + 0.1*(B/Bmax);
+        ctx.strokeStyle=`rgba(167,139,250,${alpha})`; ctx.lineWidth=1; ctx.setLineDash([2,3]);
+        ctx.beginPath(); ctx.moveTo(xL,y0); ctx.lineTo(xR,eY(Em)); ctx.stroke();
+        ctx.setLineDash([]);
+      });
+    }
+
+    // B=0 degenerate stack (all at y0)
+    ctx.strokeStyle='rgba(255,255,255,0.45)'; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.moveTo(xL-lw,y0); ctx.lineTo(xL+lw,y0); ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.25)'; ctx.font='9px IBM Plex Mono, monospace';
+    ctx.textAlign='center';
+    ctx.fillText(`${2*l+1}× entartet`, xL, y0+14);
+
+    // B≠0 levels
+    mVals.forEach(mi => {
+      const Em = En + mi*MU_B_eV*B;
+      const yEm = eY(Em);
+      const col = mColor(mi, l);
+      const isSel = mi === m;
+
+      ctx.strokeStyle = isSel ? col : col.replace('1)','0.45)');
+      ctx.lineWidth = isSel ? 3 : 1.5;
+      ctx.beginPath(); ctx.moveTo(xR-lw,yEm); ctx.lineTo(xR+lw,yEm); ctx.stroke();
+
+      // m label right
+      ctx.fillStyle = isSel ? col : col.replace('1)','0.45)');
+      ctx.font = isSel ? '500 11px IBM Plex Mono' : '10px IBM Plex Mono';
+      ctx.textAlign = 'left';
+      const mSign = mi>0?'+':'';
+      ctx.fillText(`m=${mSign}${mi}`, xR+lw+4, yEm+4);
+
+      // ΔE annotation for selected when B>0
+      if (isSel && B>0) {
+        const dE = mi*MU_B_meV*B;
+        ctx.fillStyle = 'rgba(167,139,250,0.8)';
+        ctx.font = '9px IBM Plex Mono';
+        ctx.textAlign = 'right';
+        if (mi !== 0)
+          ctx.fillText(`${dE>=0?'+':''}${dE.toFixed(2)} meV`, xR-lw-2, yEm-3);
+      }
+    });
+
+    // Double-headed arrow for total splitting when B>0 and l>0
+    if (B>0 && l>0) {
+      const Etop = En + l*MU_B_eV*B;
+      const Ebot = En - l*MU_B_eV*B;
+      const ytop = eY(Etop), ybot = eY(Ebot);
+      const ax = xR + lw + 42;
+      ctx.strokeStyle='rgba(167,139,250,0.3)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(ax,ytop); ctx.lineTo(ax,ybot); ctx.stroke();
+      // arrowheads
+      ctx.beginPath(); ctx.moveTo(ax-3,ytop+5); ctx.lineTo(ax,ytop); ctx.lineTo(ax+3,ytop+5); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ax-3,ybot-5); ctx.lineTo(ax,ybot); ctx.lineTo(ax+3,ybot-5); ctx.stroke();
+      const totalDE = 2*l*MU_B_meV*B;
+      ctx.fillStyle='rgba(167,139,250,0.45)'; ctx.font='9px IBM Plex Mono'; ctx.textAlign='center';
+      ctx.fillText(`2ℓμ_BB`, ax, (ytop+ybot)/2-5);
+      ctx.fillText(`=${totalDE.toFixed(1)}meV`, ax, (ytop+ybot)/2+7);
+    }
+  }
+
+  // E_n label
+  ctx.fillStyle='rgba(224,108,58,0.6)'; ctx.font='10px IBM Plex Mono'; ctx.textAlign='right';
+  ctx.fillText(`E${n}=${En.toFixed(2)} eV`, xL-lw-2, y0-3);
+
+  ctx.textAlign='left';
+}
+
+// ─── Radial panel ─────────────────────────────────────────────────────────────
+function drawRadial(n, l) {
+  const cv = document.getElementById('cvRadial');
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0,0,W,H);
+  const pad = {l:40,r:14,t:14,b:30};
+  const pw = W-pad.l-pad.r, ph = H-pad.t-pad.b;
+  const rmax = Math.max(30, n*n*7);
+  const Nr = 600;
+  const rs=[], vals=[];
+  let maxV=0, rMean=0, norm=0;
+  for (let i=1; i<=Nr; i++) {
+    const r=(i/Nr)*rmax, R=R_nl(n,l,r), v=r*r*R*R;
+    rs.push(r); vals.push(v);
+    if (v>maxV) maxV=v;
+    rMean+=r*v; norm+=v;
+  }
+  if (maxV===0) maxV=1;
+  if (norm>0) rMean/=norm;
+  document.getElementById('footer-nodes').textContent=n-l-1;
+  document.getElementById('footer-radial').textContent=`⟨r⟩ ≈ ${rMean.toFixed(1)} a₀`;
+
+  ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
+  for (let i=1;i<=4;i++) {
+    const gy=pad.t+ph*(1-i/4);
+    ctx.beginPath(); ctx.moveTo(pad.l,gy); ctx.lineTo(pad.l+pw,gy); ctx.stroke();
+  }
+  // filled
+  ctx.beginPath(); ctx.moveTo(pad.l,pad.t+ph);
+  for (let i=0;i<rs.length;i++) {
+    const px=pad.l+(rs[i]/rmax)*pw, py=pad.t+ph*(1-vals[i]/maxV);
+    ctx.lineTo(px,py);
+  }
+  ctx.lineTo(pad.l+pw,pad.t+ph); ctx.closePath();
+  const gr=ctx.createLinearGradient(0,pad.t,0,pad.t+ph);
+  gr.addColorStop(0,'rgba(224,108,58,0.5)'); gr.addColorStop(1,'rgba(224,108,58,0.05)');
+  ctx.fillStyle=gr; ctx.fill();
+  ctx.strokeStyle='#e06c3a'; ctx.lineWidth=1.5;
+  ctx.beginPath();
+  for (let i=0;i<rs.length;i++) {
+    const px=pad.l+(rs[i]/rmax)*pw, py=pad.t+ph*(1-vals[i]/maxV);
+    if (i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+  }
+  ctx.stroke();
+  // <r> line
+  const rxM=pad.l+(rMean/rmax)*pw;
+  ctx.strokeStyle='rgba(255,255,255,0.2)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(rxM,pad.t); ctx.lineTo(rxM,pad.t+ph); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='rgba(255,255,255,0.25)'; ctx.font='9px IBM Plex Mono';
+  ctx.fillText('⟨r⟩',rxM+2,pad.t+10);
+  // axes
+  ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(pad.l,pad.t); ctx.lineTo(pad.l,pad.t+ph); ctx.lineTo(pad.l+pw,pad.t+ph); ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,0.25)'; ctx.font='10px IBM Plex Mono';
+  for (let i=0;i<=5;i++) {
+    const px=pad.l+(i/5)*pw;
+    ctx.beginPath(); ctx.moveTo(px,pad.t+ph); ctx.lineTo(px,pad.t+ph+3); ctx.stroke();
+    ctx.textAlign='center'; ctx.fillText(Math.round((i/5)*rmax),px,pad.t+ph+13);
+  }
+  ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.font='10px IBM Plex Mono'; ctx.textAlign='center';
+  ctx.fillText('r / a₀',pad.l+pw/2,pad.t+ph+26);
+  ctx.save(); ctx.translate(12,pad.t+ph/2); ctx.rotate(-Math.PI/2);
+  ctx.textAlign='center'; ctx.font='10px IBM Plex Mono'; ctx.fillStyle='rgba(255,255,255,0.2)';
+  ctx.fillText('r²|R_nl|²',0,0); ctx.restore();
+
+  // "m-unabhängig" note
+  ctx.fillStyle='rgba(255,255,255,0.12)'; ctx.font='9px IBM Plex Mono'; ctx.textAlign='right';
+  ctx.fillText('gleich für alle m', pad.l+pw-2, pad.t+14);
+
+  // energy ladder
+  const ladderX=pad.l+pw-4, ladderBot=pad.t+ph-8, ladderH=ph*0.55;
+  const E1=-13.6;
+  ctx.textAlign='right'; ctx.font='9px IBM Plex Mono';
+  for (let ni=1;ni<=4;ni++) {
+    const Ei=-13.6/(ni*ni);
+    const frac=(Ei-E1)/(0-E1);
+    const ly=ladderBot-frac*ladderH;
+    const isA=(ni===n);
+    ctx.strokeStyle=isA?'rgba(224,108,58,0.9)':'rgba(255,255,255,0.1)'; ctx.lineWidth=isA?2:1;
+    ctx.beginPath(); ctx.moveTo(ladderX-26,ly); ctx.lineTo(ladderX,ly); ctx.stroke();
+    ctx.fillStyle=isA?'rgba(224,108,58,0.9)':'rgba(255,255,255,0.18)';
+    ctx.fillText(`n=${ni}`,ladderX-28,ly-2);
+  }
+  ctx.strokeStyle='rgba(255,255,255,0.07)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(ladderX,ladderBot-ladderH); ctx.lineTo(ladderX,ladderBot); ctx.stroke();
+  ctx.textAlign='left';
+}
+
+// ─── Resize ───────────────────────────────────────────────────────────────────
+function resizeCanvases() {
+  ['cvZeeman','cvRadial'].forEach(id => {
+    const cv = document.getElementById(id);
+    const parent = cv.parentElement;
+    const hdr = parent.querySelector('.zeeman-header, .radial-header').offsetHeight;
+    const ftr = parent.querySelector('.panel-footer').offsetHeight;
+    const rect = parent.getBoundingClientRect();
+    cv.width = rect.width;
+    cv.height = Math.max(rect.height - hdr - ftr, 150);
+  });
+}
+
+// ─── Update state display ─────────────────────────────────────────────────────
+function updateStateDisplay() {
+  const {n,l,m,B} = state;
+  const subs=['₀','₁','₂','₃','₄'];
+  const mStr = m<0 ? `₋${Math.abs(m)}` : (subs[m]??m);
+  document.getElementById('sd-nlm').textContent = `${subs[n]||n}${subs[l]||l}${mStr}`;
+  const E = -13.6/(n*n) + m*MU_B_eV*B;
+  document.getElementById('sd-E').textContent = E.toFixed(4);
+  const dE = m*MU_B_meV*B;
+  document.getElementById('sd-dE').textContent =
+    B===0 ? '0 meV' : `${dE>=0?'+':''}${dE.toFixed(3)} meV`;
+  document.getElementById('footer-zeeman-de').textContent =
+    B===0 ? 'kein Feld → alle m entartet'
+          : `ΔE(m=${m>0?'+':''}${m}) = ${dE>=0?'+':''}${dE.toFixed(3)} meV`;
+  document.getElementById('zeeman-formula').textContent =
+    B===0 ? 'E_m = E_n  ← alle m entartet bei B=0'
+          : `E_m = E_n + m·μ_B·B = ${(-13.6/(n*n)).toFixed(3)} + ${m}·${MU_B_meV.toFixed(4)}·${B.toFixed(1)}`;
+}
+
+// ─── Full redraw ──────────────────────────────────────────────────────────────
+function draw(rebuildThumbs = false) {
+  if (rebuildThumbs) buildThumbnails();
+  else updateThumbEnergies();
+  drawZeeman(state.n, state.l, state.m, state.B);
+  drawRadial(state.n, state.l);
+  updateStateDisplay();
+}
+
+// ─── Buttons ──────────────────────────────────────────────────────────────────
+function updateLButtons() {
+  const div = document.getElementById('btns-l');
+  div.innerHTML = '';
+  const lnames=['s','p','d','f'];
+  for (let l=0; l<state.n; l++) {
+    const b = document.createElement('button');
+    b.className = 'btn'+(l===state.l?' active':'');
+    b.textContent = `${l}(${lnames[l]||l})`;
+    b.dataset.qn='l'; b.dataset.val=l;
+    div.appendChild(b);
+  }
+}
+
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.btn[data-qn]');
+  if (!btn) return;
+  const qn=btn.dataset.qn, val=parseInt(btn.dataset.val);
+  if (qn==='n') {
+    state.n=val;
+    if (state.l>=val) state.l=val-1;
+    if (Math.abs(state.m)>state.l) state.m=0;
+    document.querySelectorAll('#btns-n .btn').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.val)===state.n));
+    updateLButtons();
+  } else if (qn==='l') {
+    state.l=val;
+    if (Math.abs(state.m)>state.l) state.m=0;
+    document.querySelectorAll('#btns-l .btn').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.val)===state.l));
+  }
+  draw(true);
+});
+
+// ─── B slider ────────────────────────────────────────────────────────────────
+const bSlider = document.getElementById('bSlider');
+function updateSliderFill() {
+  bSlider.style.setProperty('--fill',(bSlider.value/bSlider.max*100)+'%');
+}
+bSlider.addEventListener('input', () => {
+  state.B = parseFloat(bSlider.value);
+  document.getElementById('bVal').textContent = state.B.toFixed(1)+' T';
+  document.getElementById('bGlow').classList.toggle('on', state.B>0);
+  updateSliderFill();
+  draw(false);
+});
+document.getElementById('bZeroBtn').addEventListener('click', () => {
+  state.B=0; bSlider.value=0;
+  document.getElementById('bVal').textContent='0.0 T';
+  document.getElementById('bGlow').classList.remove('on');
+  updateSliderFill();
+  draw(false);
+});
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+updateLButtons();
+function init() {
+  resizeCanvases();
+  draw(true);
+}
+window.addEventListener('resize', () => { resizeCanvases(); draw(false); });
+setTimeout(init, 80);
+</script>
+</body>
+</html>

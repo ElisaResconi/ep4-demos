@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raumquantisierung: L und S — EP4</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #0a0e1a;
+  color: #e8edf5;
+  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  padding: 24px 16px;
+  min-height: 100vh;
+}
+#app { width: 100%; max-width: 920px; }
+.title { font-size: 17px; font-weight: 600; letter-spacing: 0.02em; margin-bottom: 3px; }
+.subtitle { font-size: 12px; color: #8899aa; margin-bottom: 16px; }
+
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.col { display: flex; flex-direction: column; gap: 10px; }
+
+.col-header {
+  text-align: center;
+  padding: 10px 14px;
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.col-header.orbital {
+  background: #0d1f35;
+  border: 1.5px solid #0065bd;
+  color: #5ba3d9;
+}
+.col-header.spin {
+  background: #1a0d2e;
+  border: 1.5px solid #8b5cf6;
+  color: #c4b5fd;
+}
+.col-header .sub {
+  font-size: 11px; font-weight: 400;
+  color: #8899aa; margin-top: 3px; font-style: italic;
+}
+.panel {
+  background: #111827;
+  border: 1px solid #1e2d45;
+  border-radius: 10px;
+  padding: 12px;
+  display: flex; flex-direction: column; align-items: center;
+}
+canvas { border-radius: 6px; display: block; }
+
+.controls-row {
+  display: flex; gap: 10px; justify-content: center;
+  flex-wrap: wrap; margin-bottom: 10px; align-items: center;
+}
+.ctrl-group { display: flex; flex-direction: column; gap: 3px; align-items: center; }
+.ctrl-label { font-size: 11px; color: #8899aa; }
+.ctrl-label span { color: #5ba3d9; font-weight: 600; }
+input[type=range] { width: 120px; accent-color: #0065bd; cursor: pointer; }
+
+button {
+  background: transparent; color: #e8edf5;
+  border: 1px solid #1e2d45; border-radius: 7px;
+  padding: 7px 14px; font-size: 12px; cursor: pointer;
+  transition: all 0.15s; font-family: inherit;
+}
+button:hover { border-color: #0065bd; color: #5ba3d9; }
+button.active { background: #0065bd; border-color: #0065bd; color: #fff; font-weight: 600; }
+
+.insight {
+  background: #0d1a2e;
+  border: 1px solid #0065bd;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 12px; color: #8baac8;
+  text-align: center; line-height: 1.8;
+  margin-bottom: 10px;
+}
+.insight strong { color: #5ba3d9; }
+.insight .purple { color: #c4b5fd; }
+.insight .gold { color: #f0c040; }
+
+.tum-badge { font-size: 10px; color: #1e2d45; text-align: right; margin-top: 8px; letter-spacing: 0.08em; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="title">Raumquantisierung — Bahndrehimpuls L und Spin S</div>
+  <div class="subtitle">Dasselbe Prinzip, verschiedene Quantenzahlen — der Vektor kann sich nie vollständig ausrichten</div>
+
+  <div class="controls-row">
+    <div class="ctrl-group">
+      <div class="ctrl-label">Bahndrehimpuls: ℓ = <span id="valL">1</span></div>
+      <input type="range" id="slL" min="0" max="3" step="1" value="1">
+    </div>
+    <div style="width:1px; height:30px; background:#1e2d45;"></div>
+    <div class="ctrl-label" style="color:#c4b5fd;">Spin: s = ½ &nbsp;(fest)</div>
+    <div style="width:1px; height:30px; background:#1e2d45;"></div>
+    <button id="btnAnim" class="active">&#9654; Präzession</button>
+    <button id="btnStop">&#9646;&#9646; Stop</button>
+  </div>
+
+  <div class="columns">
+    <div class="col">
+      <div class="col-header orbital">
+        Bahndrehimpuls <b>L</b>
+        <div class="sub">ℓ = <span id="lLabel">1</span> &nbsp;|&nbsp; m = −ℓ, …, +ℓ &nbsp;|&nbsp; 2ℓ+1 = <span id="mCount">3</span> Zustände</div>
+      </div>
+      <div class="panel">
+        <canvas id="cvL" width="400" height="420"></canvas>
+      </div>
+    </div>
+    <div class="col">
+      <div class="col-header spin">
+        Spin <b>S</b>
+        <div class="sub">s = ½ &nbsp;|&nbsp; m_s = ±½ &nbsp;|&nbsp; 2 Zustände</div>
+      </div>
+      <div class="panel">
+        <canvas id="cvS" width="400" height="420"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="insight">
+    <strong>Bahndrehimpuls L:</strong>
+    |<b>L</b>| = ħ&radic;(ℓ(ℓ+1)) &nbsp;&gt;&nbsp; ℓħ &nbsp;=&nbsp; max. Projektion
+    &nbsp;&nbsp;&#8212;&nbsp;&nbsp;
+    <span class="purple"><strong>Spin S:</strong>
+    |<b>S</b>| = ħ&radic;(¾) ≈ 0.866ħ &nbsp;&gt;&nbsp; ½ħ &nbsp;=&nbsp; max. Projektion</span>
+    <br>
+    <span class="gold">&#10148; Der Vektor kann sich <em>nie</em> vollständig ausrichten — ein rein quantenmechanisches Phänomen.</span>
+    <br>
+    ↑ und ↓ bedeuten: m<sub>s</sub> = +½ bzw. −½ &nbsp;·&nbsp; <em>Kein geometrisches Oben/Unten — Messergebnisse entlang der z-Achse.</em>
+  </div>
+
+  <div class="tum-badge">TUM — Experimentalphysik 4</div>
+</div>
+
+<script>
+const CW = 400, CH = 420;
+const ctxL = document.getElementById('cvL').getContext('2d');
+const ctxS = document.getElementById('cvS').getContext('2d');
+
+let l = 1;
+let animating = true;
+let phi = 0;
+let rafId = null;
+
+// ── 3D → 2D projection (simple isometric-style) ──────────────────────────
+// We draw: z-axis vertical, x-y plane as ellipse
+// Origin at center of canvas
+const OX = CW / 2, OY = CH / 2 + 20;
+const SCALE = 110; // pixels per ħ unit
+
+// Project 3D point (x,y,z) to 2D canvas
+// y-axis goes into screen, shown foreshortened
+function project(x, y, z) {
+  const px = OX + (x - y * 0.35) * SCALE;
+  const py = OY - z * SCALE + y * 0.18 * SCALE;
+  return { px, py };
+}
+
+// ── Draw a full cone diagram ──────────────────────────────────────────────
+function drawDiagram(ctx, s_val, isSpinPanel, phiOffset) {
+  ctx.fillStyle = '#0a0e1a';
+  ctx.fillRect(0, 0, CW, CH);
+
+  const color = isSpinPanel ? '#8b5cf6' : '#0065bd';
+  const colorLight = isSpinPanel ? '#c4b5fd' : '#5ba3d9';
+  const colorFaint = isSpinPanel ? 'rgba(139,92,246,' : 'rgba(0,101,189,';
+
+  // Total magnitude
+  const mag = Math.sqrt(s_val * (s_val + 1));
+  const mVals = [];
+  for (let m = -s_val; m <= s_val; m += 1) mVals.push(m);
+  // For s=0.5 we need m = -0.5, +0.5
+  const mList = [];
+  for (let i = 0; i <= 2 * s_val; i++) {
+    mList.push(-s_val + i);
+  }
+
+  // ── z-axis ──
+  const zTop = project(0, 0, mag + 0.3);
+  const zBot = project(0, 0, -(mag + 0.3));
+  ctx.strokeStyle = '#334455';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(zBot.px, zBot.py);
+  ctx.lineTo(zTop.px, zTop.py);
+  ctx.stroke();
+  // z label
+  ctx.fillStyle = '#8899aa';
+  ctx.font = 'bold 13px Segoe UI, Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('z', zTop.px, zTop.py - 8);
+
+  // ── x-y plane ellipse ──
+  ctx.save();
+  ctx.translate(OX, OY);
+  ctx.scale(1, 0.22);
+  ctx.beginPath();
+  ctx.arc(0, 0, mag * SCALE, 0, 2 * Math.PI);
+  ctx.strokeStyle = '#1e2d45';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.restore();
+
+  // ── Tick marks on z-axis for each m ──
+  for (const m of mList) {
+    const tp = project(0, 0, m);
+    ctx.fillStyle = '#556677';
+    ctx.fillRect(tp.px - 4, tp.py - 0.5, 8, 1);
+    ctx.fillStyle = '#8899aa';
+    ctx.font = '10px Segoe UI, Arial, sans-serif';
+    ctx.textAlign = 'right';
+    const mlabel = Number.isInteger(m) ? `${m >= 0 ? '+' : ''}${m}` :
+      (m > 0 ? '+½' : '−½');
+    ctx.fillText(mlabel, tp.px - 7, tp.py + 4);
+  }
+
+  // ── For each m: draw cone circle + precessing vector ──
+  mList.forEach((m, idx) => {
+    const rCone = Math.sqrt(Math.max(0, mag * mag - m * m));
+    // Cone circle (dashed)
+    if (rCone > 0.01) {
+      ctx.save();
+      ctx.translate(OX + (-0 * 0.35) * SCALE, OY - m * SCALE + 0 * 0.18 * SCALE);
+      ctx.scale(1, 0.22);
+      ctx.beginPath();
+      ctx.setLineDash([6, 4]);
+      ctx.arc(0, 0, rCone * SCALE, 0, 2 * Math.PI);
+      ctx.strokeStyle = colorFaint + '0.75)';
+      ctx.lineWidth = 3.0;
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+
+    // Cone surface lines (faint)
+    for (let a = 0; a < 2 * Math.PI; a += Math.PI / 3) {
+      const px3 = rCone * Math.cos(a);
+      const py3 = rCone * Math.sin(a);
+      const tip = project(px3, py3, m);
+      const orig = project(0, 0, 0);
+      ctx.strokeStyle = colorFaint + '0.06)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(orig.px, orig.py);
+      ctx.lineTo(tip.px, tip.py);
+      ctx.stroke();
+    }
+
+    // Precessing vector for this m
+    const phi_m = phiOffset + idx * (2 * Math.PI / mList.length) * 0.7;
+    const vx = rCone * Math.cos(phi_m);
+    const vy = rCone * Math.sin(phi_m);
+    const tip = project(vx, vy, m);
+    const orig = project(0, 0, 0);
+
+    // Shadow on xy plane
+    const shadow = project(vx, vy, 0);
+    ctx.strokeStyle = colorFaint + '0.2)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(orig.px, orig.py);
+    ctx.lineTo(shadow.px, shadow.py);
+    ctx.stroke();
+    // Vertical dashed to tip
+    ctx.beginPath();
+    ctx.moveTo(shadow.px, shadow.py);
+    ctx.lineTo(tip.px, tip.py);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Main vector
+    ctx.strokeStyle = colorLight;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(orig.px, orig.py);
+    ctx.lineTo(tip.px, tip.py);
+    ctx.stroke();
+
+    // Arrowhead
+    const angle = Math.atan2(tip.py - orig.py, tip.px - orig.px);
+    ctx.save();
+    ctx.translate(tip.px, tip.py);
+    ctx.rotate(angle);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(-10, -4);
+    ctx.lineTo(-10, 4);
+    ctx.closePath();
+    ctx.fillStyle = colorLight;
+    ctx.fill();
+    ctx.restore();
+
+    // m label on tip
+    ctx.fillStyle = colorLight;
+    ctx.font = 'bold 11px Segoe UI, Arial, sans-serif';
+    ctx.textAlign = 'left';
+    const mlabel2 = Number.isInteger(m) ? `m=${m >= 0 ? '+' : ''}${m}` :
+      `mₛ=${m > 0 ? '+½' : '−½'}`;
+    ctx.fillText(mlabel2, tip.px + 5, tip.py - 3);
+  });
+
+  // ── |vector| annotation ──
+  // Draw the magnitude indicator on the longest vector
+  const mMax = mList[mList.length - 1];
+  const rMax = Math.sqrt(Math.max(0, mag * mag - mMax * mMax));
+  const phi_top = phiOffset + (mList.length - 1) * (2 * Math.PI / mList.length) * 0.7;
+  const vxT = rMax * Math.cos(phi_top);
+  const vyT = rMax * Math.sin(phi_top);
+  const tipT = project(vxT, vyT, mMax);
+  const origP = project(0, 0, 0);
+
+  // |S| or |L| brace at midpoint
+  const mx2 = (tipT.px + origP.px) / 2;
+  const my2 = (tipT.py + origP.py) / 2;
+  ctx.fillStyle = '#f0c040';
+  ctx.font = '11px Segoe UI, Arial, sans-serif';
+  ctx.textAlign = 'right';
+  const magLabel = isSpinPanel
+    ? `|S| = ħ√(¾) ≈ 0.87ħ`
+    : `|L| = ħ√(ℓ(ℓ+1))`;
+  ctx.fillText(magLabel, mx2 - 6, my2 - 4);
+
+  // z-projection annotation for top cone
+  const topProj = project(0, 0, mMax);
+  ctx.strokeStyle = 'rgba(240,192,64,0.5)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath();
+  ctx.moveTo(tipT.px, tipT.py);
+  ctx.lineTo(topProj.px, topProj.py);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#f0c040';
+  ctx.font = '10px Segoe UI, Arial, sans-serif';
+  ctx.textAlign = 'left';
+  const projLabel = isSpinPanel ? 'Projektion = +½ħ' : `Projektion = ${mMax >= 0 ? '+' : ''}${mMax}ħ`;
+  ctx.fillText(projLabel, topProj.px + 6, topProj.py);
+
+  // ── Title inside canvas ──
+  ctx.fillStyle = '#8899aa';
+  ctx.font = '11px Segoe UI, Arial, sans-serif';
+  ctx.textAlign = 'left';
+  if (isSpinPanel) {
+    ctx.fillText(`s = ½  |  |S| = ħ√(s(s+1)) = ħ√(¾)`, 10, 18);
+    ctx.fillText(`Zwei Zustände: mₛ = +½ (↑) und −½ (↓)`, 10, 32);
+  } else {
+    ctx.fillText(`ℓ = ${s_val}  |  |L| = ħ√(ℓ(ℓ+1)) = ħ√(${s_val*(s_val+1)})`, 10, 18);
+    ctx.fillText(`${2*s_val+1} Zustände: m = ${-s_val}, …, +${s_val}`, 10, 32);
+  }
+
+  // ── "nie ausgerichtet" annotation ──
+  ctx.fillStyle = 'rgba(231,76,60,0.8)';
+  ctx.font = 'italic 10px Segoe UI, Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Vektor nie parallel zur z-Achse', CW / 2, CH - 10);
+}
+
+// ── Animation loop ────────────────────────────────────────────────────────
+function updateLabels() {
+  document.getElementById('valL').textContent = l;
+  document.getElementById('lLabel').textContent = l;
+  document.getElementById('mCount').textContent = 2*l+1;
+}
+
+function draw() {
+  drawDiagram(ctxL, l, false, phi);
+  drawDiagram(ctxS, 0.5, true, phi * 0.8);
+}
+
+function animate() {
+  phi += 0.012;
+  draw();
+  if (animating) rafId = requestAnimationFrame(animate);
+}
+
+document.getElementById('slL').addEventListener('input', function() {
+  l = parseInt(this.value);
+  updateLabels();
+  if (!animating) draw();
+});
+
+document.getElementById('btnAnim').addEventListener('click', function() {
+  animating = true;
+  this.className = 'active';
+  document.getElementById('btnStop').className = '';
+  animate();
+});
+
+document.getElementById('btnStop').addEventListener('click', function() {
+  animating = false;
+  this.className = 'active';
+  document.getElementById('btnAnim').className = '';
+  if (rafId) cancelAnimationFrame(rafId);
+});
+
+updateLabels();
+animate();
+</script>
+</body>
+</html>

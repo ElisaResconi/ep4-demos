@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wellenpaket normiert — Exp. Physik 4, TUM</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #f8f7f4; color: #1a1a1a;
+    min-height: 100vh; padding: 1.5rem 2rem 2rem;
+  }
+  h1 { font-size: 1.35rem; font-weight: 500; color: #185FA5; margin-bottom: 0.2rem; }
+  .subtitle { font-size: 0.88rem; color: #5F5E5A; margin-bottom: 1.4rem; }
+
+  .control-row {
+    display: flex; align-items: center; gap: 16px;
+    margin-bottom: 0.6rem; max-width: 500px;
+  }
+  .control-row label { font-size: 0.95rem; min-width: 80px; color: #444441; }
+  .control-row input[type=range] { flex: 1; height: 4px; accent-color: #534AB7; cursor: pointer; }
+  .control-row .val { font-size: 0.95rem; font-weight: 500; min-width: 40px; color: #26215C; }
+
+  .norm-display {
+    font-size: 0.82rem; color: #085041; background: #E1F5EE;
+    border-radius: 6px; padding: 3px 12px; display: inline-block;
+    margin-bottom: 1rem; font-weight: 500;
+  }
+
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1.4rem; }
+  .badge { display: inline-block; font-size: 0.82rem; padding: 4px 14px; border-radius: 20px; font-weight: 500; }
+  .badge-x    { background: #EEEDFE; color: #3C3489; }
+  .badge-k    { background: #E1F5EE; color: #085041; }
+  .badge-heis { background: #FAEEDA; color: #633806; }
+  .badge-norm { background: #EAF3DE; color: #27500A; }
+
+  .plots {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 1rem; margin-bottom: 1.4rem;
+  }
+  @media (max-width: 800px) { .plots { grid-template-columns: 1fr; } }
+
+  .plot-card {
+    background: #ffffff; border: 0.5px solid #D3D1C7;
+    border-radius: 12px; padding: 0.9rem 1rem 0.7rem;
+  }
+  .plot-title { font-size: 0.82rem; font-weight: 500; color: #444441; margin-bottom: 0.5rem; }
+  .plot-wrap { position: relative; height: 200px; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 7px; }
+  .leg-item { display: flex; align-items: center; gap: 5px; font-size: 0.75rem; color: #5F5E5A; }
+  .leg-swatch { width: 20px; height: 3px; border-radius: 2px; }
+  .leg-swatch.dashed {
+    background: repeating-linear-gradient(90deg, #534AB7 0, #534AB7 4px, transparent 4px, transparent 7px);
+    height: 2px;
+  }
+
+  .step-badges {
+    display: grid; grid-template-columns: repeat(3,1fr);
+    gap: 8px; margin-bottom: 1.2rem; max-width: 900px;
+  }
+  .step-badge { border-radius: 8px; padding: 8px 12px; font-size: 0.8rem; line-height: 1.5; }
+  .step-badge .num { font-size: 0.95rem; font-weight: 500; display: block; margin-bottom: 2px; }
+  .s1 { background: #EEEDFE; color: #3C3489; }
+  .s2 { background: #FCEBEB; color: #791F1F; }
+  .s3 { background: #E1F5EE; color: #085041; }
+
+  .insight-box {
+    background: #ffffff; border: 0.5px solid #D3D1C7;
+    border-left: 3px solid #534AB7; border-radius: 0 8px 8px 0;
+    padding: 0.85rem 1.1rem; font-size: 0.86rem;
+    color: #444441; line-height: 1.65; max-width: 900px;
+  }
+  .insight-box strong { color: #26215C; }
+  .formula { display:block; text-align:center; font-size:0.95rem; color:#185FA5; margin: 0.4rem 0; }
+
+  footer { margin-top: 1.2rem; font-size: 0.74rem; color: #B4B2A9; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<h1>Wellenpaket, Wahrscheinlichkeitsdichte &amp; Impulsraum</h1>
+<p class="subtitle">Experimentalphysik 4 &nbsp;&middot;&nbsp; TU München &nbsp;&middot;&nbsp; Normierte Demo</p>
+
+<div class="control-row">
+  <label>Breite &Delta;x</label>
+  <input type="range" id="sig" min="0.3" max="3.0" step="0.1" value="1.0">
+  <span class="val" id="sigVal">1.0</span>
+</div>
+
+<div class="badges" id="badges"></div>
+
+<div class="step-badges">
+  <div class="step-badge s1">
+    <span class="num">1 &mdash; &psi;(x)</span>
+    Komplexe Wellenfunktion. Nicht messbar. Normierungsfaktor (&pi;&sigma;²)^&minus;¼ sorgt für ∫|&psi;|²dx = 1.
+  </div>
+  <div class="step-badge s2">
+    <span class="num">2 &mdash; |&psi;(x)|²</span>
+    Aufenthaltswahrscheinlichkeit. Fläche = 1 immer. Schmal &rarr; hoch. Breit &rarr; flach.
+  </div>
+  <div class="step-badge s3">
+    <span class="num">3 &mdash; |&phi;(k)|²</span>
+    Impulsverteilung, ebenfalls normiert. Gegensätzlich zu Panel 2 &mdash; Unschärferelation!
+  </div>
+</div>
+
+<div class="plots">
+  <div class="plot-card">
+    <div class="plot-title">Wellenfunktion &nbsp;&psi;(x)</div>
+    <div class="plot-wrap"><canvas id="cPsi" role="img" aria-label="Normierte komplexe Wellenfunktion"></canvas></div>
+    <div class="legend">
+      <span class="leg-item"><span class="leg-swatch" style="background:#EF9F27;"></span>Re(&psi;)</span>
+      <span class="leg-item"><span class="leg-swatch" style="background:#D85A30;"></span>Im(&psi;)</span>
+      <span class="leg-item"><span class="leg-swatch dashed"></span>|&psi;|</span>
+    </div>
+  </div>
+
+  <div class="plot-card">
+    <div class="plot-title">Wahrscheinlichkeitsdichte &nbsp;|&psi;(x)|² &nbsp;<span style="font-size:0.72rem;color:#1D9E75;font-weight:400;">∫dx = 1</span></div>
+    <div class="plot-wrap"><canvas id="cProb" role="img" aria-label="Normierte Aufenthaltswahrscheinlichkeit"></canvas></div>
+    <div class="legend">
+      <span class="leg-item"><span class="leg-swatch" style="background:#E24B4A;"></span>|&psi;(x)|²</span>
+    </div>
+  </div>
+
+  <div class="plot-card">
+    <div class="plot-title">Impulsverteilung &nbsp;|&phi;(k)|² &nbsp;<span style="font-size:0.72rem;color:#1D9E75;font-weight:400;">∫dk = 1</span></div>
+    <div class="plot-wrap"><canvas id="cMom" role="img" aria-label="Normierte Impulswahrscheinlichkeit"></canvas></div>
+    <div class="legend">
+      <span class="leg-item"><span class="leg-swatch" style="background:#1D9E75;"></span>|&phi;(k)|²</span>
+    </div>
+  </div>
+</div>
+
+<div class="insight-box">
+  <strong>Normierung:</strong>
+  <span class="formula">∫|&psi;(x)|² dx = 1 &nbsp;&nbsp;und&nbsp;&nbsp; ∫|&phi;(k)|² dk = 1 &nbsp;&nbsp;für alle &Delta;x</span>
+  Die Fläche unter beiden Kurven bleibt konstant = 1, egal wie der Schieberegler steht.
+  Ein engeres Paket wird automatisch <em>höher</em> (mehr Wahrscheinlichkeit pro Längeneinheit),
+  ein breiteres wird <em>flacher</em> — das Elektron muss irgendwo sein.
+  Gleichzeitig wächst die Impulsverteilung in die Breite: &Delta;x &middot; &Delta;p &ge; &hbar;/2.
+</div>
+
+<footer>
+  Normierte Wellenfunktion: &psi;(x) = (&pi;&sigma;²)^&minus;¼ &middot; exp(&minus;x²/2&sigma;²) &middot; e<sup>ik₀x</sup>
+  &nbsp;|&nbsp; |&psi;(x)|² = (&pi;&sigma;²)^&minus;½ &middot; exp(&minus;x²/&sigma;²)
+  &nbsp;|&nbsp; Fourier: |&phi;(k)|² = (&pi;/&sigma;²)^&minus;½ &middot; exp(&minus;(k&minus;k₀)²&sigma;²) &nbsp;(normiert auf 1/(2&pi;) Konvention)
+  &nbsp;|&nbsp; k₀ = 2
+</footer>
+
+<script>
+const N = 400;
+const xMin = -10, xMax = 10;
+const kMin = -8,  kMax = 8;
+const k0 = 2.0;
+
+function makePos(sigma) {
+  const norm = Math.pow(Math.PI * sigma * sigma, -0.25);
+  const xs=[], re=[], im=[], env=[], prob=[];
+  for (let i=0; i<N; i++) {
+    const x = xMin + (xMax-xMin)*i/(N-1);
+    const g = norm * Math.exp(-x*x / (2*sigma*sigma));
+    xs.push(x.toFixed(2));
+    re.push(+(g * Math.cos(k0*x)).toFixed(5));
+    im.push(+(g * Math.sin(k0*x)).toFixed(5));
+    env.push(+g.toFixed(5));
+    prob.push(+(g*g).toFixed(6));
+  }
+  return {xs, re, im, env, prob};
+}
+
+function makeMom(sigma) {
+  const sigK = 1.0 / sigma;
+  const normK = Math.pow(Math.PI * sigK * sigK, -0.25);
+  const ks=[], prob=[];
+  for (let i=0; i<N; i++) {
+    const k = kMin + (kMax-kMin)*i/(N-1);
+    const g = normK * Math.exp(-(k-k0)*(k-k0) / (2*sigK*sigK));
+    ks.push(k.toFixed(2));
+    prob.push(+(g*g).toFixed(6));
+  }
+  return {ks, prob};
+}
+
+function numericalIntegral(arr, dx) {
+  return arr.reduce((s,v) => s+v, 0) * dx;
+}
+
+const gridCfg = { color:'rgba(136,135,128,0.15)' };
+
+function tickCfg(labels) {
+  return {
+    maxTicksLimit:7, color:'#888780', font:{size:10},
+    callback:(val,i)=>parseFloat(labels[i]).toFixed(1)
+  };
+}
+
+function makeOpts(labels, xLabel, yLabel, yMin, yMax) {
+  return {
+    responsive:true, maintainAspectRatio:false, animation:false,
+    plugins:{ legend:{display:false}, tooltip:{enabled:false} },
+    scales:{
+      x:{ type:'category', labels,
+          ticks:tickCfg(labels), grid:gridCfg,
+          title:{display:true, text:xLabel, color:'#888780', font:{size:10}} },
+      y:{ min:yMin, max:yMax,
+          ticks:{maxTicksLimit:5, color:'#888780', font:{size:10}},
+          grid:gridCfg,
+          title:{display:true, text:yLabel, color:'#888780', font:{size:10}} }
+    }
+  };
+}
+
+function psiDatasets(d) {
+  return [
+    {data:d.re,  borderColor:'#EF9F27', borderWidth:1.5, pointRadius:0, tension:0.3, fill:false},
+    {data:d.im,  borderColor:'#D85A30', borderWidth:1.5, pointRadius:0, tension:0.3, fill:false},
+    {data:d.env, borderColor:'#534AB7', borderWidth:2, pointRadius:0, tension:0.3, fill:false, borderDash:[6,3]},
+    {data:d.env.map(v=>-v), borderColor:'#534AB7', borderWidth:2, pointRadius:0, tension:0.3, fill:false, borderDash:[6,3]},
+  ];
+}
+
+function probDatasets(d) {
+  return [{
+    data:d.prob, borderColor:'#E24B4A', borderWidth:2.5,
+    pointRadius:0, tension:0.3, fill:true, backgroundColor:'rgba(226,75,74,0.15)'
+  }];
+}
+
+function momDatasets(d) {
+  return [{
+    data:d.prob, borderColor:'#1D9E75', borderWidth:2.5,
+    pointRadius:0, tension:0.3, fill:true, backgroundColor:'rgba(29,158,117,0.15)'
+  }];
+}
+
+function updateBadges(sigma, normX, normK) {
+  const dk = (1/sigma).toFixed(2);
+  document.getElementById('badges').innerHTML =
+    `<span class="badge badge-x">\u0394x \u2248 ${sigma.toFixed(1)}</span>`+
+    `<span class="badge badge-k">\u0394k \u2248 ${dk}</span>`+
+    `<span class="badge badge-heis">\u0394x\u00b7\u0394p/\u0127 \u2248 0.50 \u2265 0.5</span>`+
+    `<span class="badge badge-norm">\u222b|\u03c8|\u00b2dx \u2248 ${normX.toFixed(3)} \u2248 1</span>`+
+    `<span class="badge badge-norm">\u222b|\u03c6|\u00b2dk \u2248 ${normK.toFixed(3)} \u2248 1</span>`;
+}
+
+let sigma = 1.0;
+let dp = makePos(sigma);
+let dm = makeMom(sigma);
+const dxStep = (xMax-xMin)/(N-1);
+const dkStep = (kMax-kMin)/(N-1);
+
+const yMaxPsi  = 0.85;
+const yMaxProb = 0.85;
+const yMaxMom  = 0.85;
+
+const chartPsi = new Chart(document.getElementById('cPsi'), {
+  type:'line',
+  data:{ labels:dp.xs, datasets:psiDatasets(dp) },
+  options:makeOpts(dp.xs, 'x', '\u03c8(x)', -yMaxPsi, yMaxPsi)
+});
+
+const chartProb = new Chart(document.getElementById('cProb'), {
+  type:'line',
+  data:{ labels:dp.xs, datasets:probDatasets(dp) },
+  options:makeOpts(dp.xs, 'x', '|\u03c8(x)|\u00b2', 0, yMaxProb)
+});
+
+const chartMom = new Chart(document.getElementById('cMom'), {
+  type:'line',
+  data:{ labels:dm.ks, datasets:momDatasets(dm) },
+  options:makeOpts(dm.ks, 'k = p/\u0127', '|\u03c6(k)|\u00b2', 0, yMaxMom)
+});
+
+const nX = numericalIntegral(dp.prob, dxStep);
+const nK = numericalIntegral(dm.prob, dkStep);
+updateBadges(sigma, nX, nK);
+
+document.getElementById('sig').addEventListener('input', function() {
+  sigma = parseFloat(this.value);
+  document.getElementById('sigVal').textContent = sigma.toFixed(1);
+  const dp2 = makePos(sigma);
+  const dm2 = makeMom(sigma);
+
+  chartPsi.data.datasets  = psiDatasets(dp2);
+  chartProb.data.datasets = probDatasets(dp2);
+  chartMom.data.datasets  = momDatasets(dm2);
+  chartPsi.update('none');
+  chartProb.update('none');
+  chartMom.update('none');
+
+  const nX2 = numericalIntegral(dp2.prob, dxStep);
+  const nK2 = numericalIntegral(dm2.prob, dkStep);
+  updateBadges(sigma, nX2, nK2);
+});
+</script>
+</body>
+</html>

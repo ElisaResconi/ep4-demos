@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Doppelspalt — Bach et al. 2013 — EP4</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #0a0e1a; color: #e8edf5;
+  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  display: flex; justify-content: center;
+  padding: 24px 16px; min-height: 100vh;
+}
+#app { width: 100%; max-width: 980px; }
+.title { font-size: 17px; font-weight: 600; letter-spacing: 0.02em; margin-bottom: 3px; }
+.subtitle { font-size: 12px; color: #8899aa; margin-bottom: 14px; }
+
+/* Mode selector — the heart of the demo */
+.mode-bar {
+  display: flex; gap: 10px; margin-bottom: 14px;
+  flex-wrap: wrap; align-items: stretch;
+}
+.mode-btn {
+  flex: 1; min-width: 120px;
+  padding: 10px 12px; border-radius: 9px;
+  border: 2px solid; cursor: pointer;
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  text-align: center; transition: all 0.2s; line-height: 1.4;
+}
+.mode-btn .big { font-size: 18px; display: block; margin-bottom: 2px; }
+.mode-btn .small { font-size: 10px; font-weight: 400; color: #8899aa; }
+
+.mode-btn.p12 { border-color: #0065bd; background: #0d1f35; color: #5ba3d9; }
+.mode-btn.p12.active { background: #0065bd; color: #fff; }
+.mode-btn.p12.active .small { color: #aad4f5; }
+
+.mode-btn.p1 { border-color: #e8a030; background: #1a120a; color: #e8a030; }
+.mode-btn.p1.active { background: #b07820; color: #fff; }
+.mode-btn.p1.active .small { color: #f5d090; }
+
+.mode-btn.p2 { border-color: #40b060; background: #0a180e; color: #40b060; }
+.mode-btn.p2.active { background: #2a8040; color: #fff; }
+.mode-btn.p2.active .small { color: #90d4a8; }
+
+.mode-btn.psum { border-color: #8b5cf6; background: #110d1f; color: #a78bfa; }
+.mode-btn.psum.active { background: #6030c0; color: #fff; }
+.mode-btn.psum.active .small { color: #d0c0ff; }
+
+/* Param controls */
+.controls-bar {
+  display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end;
+  background: #111827; border: 1px solid #1e2d45;
+  border-radius: 10px; padding: 10px 16px; margin-bottom: 14px;
+}
+.ctrl-group { display: flex; flex-direction: column; gap: 4px; min-width: 120px; flex: 1; }
+.ctrl-label { font-size: 11px; color: #8899aa; }
+.ctrl-label span { color: #5ba3d9; font-weight: 600; }
+input[type=range] { width: 100%; accent-color: #0065bd; cursor: pointer; }
+
+/* Main layout */
+.main-grid {
+  display: grid; grid-template-columns: 240px 1fr 190px;
+  gap: 12px; margin-bottom: 12px;
+}
+.panel {
+  background: #111827; border: 1px solid #1e2d45;
+  border-radius: 10px; padding: 10px;
+  display: flex; flex-direction: column; align-items: center;
+}
+.panel-label {
+  font-size: 10px; color: #8899aa;
+  letter-spacing: 0.05em; text-transform: uppercase;
+  align-self: flex-start; margin-bottom: 6px;
+}
+canvas { border-radius: 5px; display: block; }
+
+/* Bottom */
+.bottom-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+button.ctrl {
+  background: transparent; color: #e8edf5;
+  border: 1px solid #1e2d45; border-radius: 7px;
+  padding: 7px 14px; font-size: 12px; cursor: pointer;
+  transition: all 0.15s; font-family: inherit; white-space: nowrap;
+}
+button.ctrl:hover { border-color: #0065bd; color: #5ba3d9; }
+button.ctrl.primary { background: #0065bd; border-color: #0065bd; color: #fff; font-weight: 600; }
+button.ctrl.primary:hover { background: #0052a0; }
+button.ctrl.accent { border-color: #f0a500; color: #f0a500; }
+button.ctrl.accent:hover { background: rgba(240,165,0,0.08); }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; align-items: center; }
+
+.counter { font-size: 12px; color: #8899aa; text-align: center; margin-top: 4px; }
+.counter span { font-weight: 600; }
+.msg { font-size: 12px; text-align: center; font-style: italic;
+  min-height: 18px; margin-top: 4px; transition: color 0.3s; color: #8899aa; }
+.msg.blue { color: #5ba3d9; }
+.msg.orange { color: #e8a030; }
+.msg.green { color: #40b060; }
+.msg.purple { color: #a78bfa; }
+
+/* Insight box */
+.insight {
+  background: #0d1a2e; border: 1px solid #1e2d45;
+  border-radius: 8px; padding: 12px 18px;
+  font-size: 12px; color: #8baac8;
+  line-height: 1.8; margin-bottom: 10px;
+}
+.insight .row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 6px; }
+.insight .eq { flex: 1; min-width: 200px; padding: 6px 10px; border-radius: 6px; text-align: center; }
+.insight .eq.blue { background: rgba(0,101,189,0.12); border: 1px solid #0065bd33; color: #5ba3d9; }
+.insight .eq.orange { background: rgba(232,160,48,0.10); border: 1px solid #e8a03033; color: #e8a030; }
+.insight .eq.green { background: rgba(64,176,96,0.10); border: 1px solid #40b06033; color: #40b060; }
+.insight .eq.purple { background: rgba(139,92,246,0.10); border: 1px solid #8b5cf633; color: #a78bfa; }
+.insight .key { color: #e8edf5; font-style: normal; font-weight: 600; }
+.insight .note { font-size: 11px; color: #8899aa; font-style: italic; margin-top: 6px; border-top: 1px solid #1e2d45; padding-top: 6px; }
+
+.ref { font-size: 11px; color: #445566; text-align: right; margin-top: 4px; }
+.tum-badge { font-size: 10px; color: #1e2d45; text-align: right; margin-top: 6px; letter-spacing: 0.08em; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="title">Doppelspalt mit Elektronen — nach Bach et al. (2013)</div>
+  <div class="subtitle">Feynmans Gedankenexperiment realisiert: P₁, P₂, P₁₂ — und warum P₁₂ ≠ P₁ + P₂</div>
+
+  <!-- Mode selector -->
+  <div class="mode-bar">
+    <button class="mode-btn p12 active" id="btnP12" onclick="setMode('p12')">
+      <span class="big">&#9646;&#9646;</span>
+      P₁₂ — beide Spalte offen
+      <span class="small">Interferenzmuster</span>
+    </button>
+    <button class="mode-btn p1" id="btnP1" onclick="setMode('p1')">
+      <span class="big">&#9646;&#9647;</span>
+      P₁ — nur Spalt 1
+      <span class="small">Spalt 2 geschlossen</span>
+    </button>
+    <button class="mode-btn p2" id="btnP2" onclick="setMode('p2')">
+      <span class="big">&#9647;&#9646;</span>
+      P₂ — nur Spalt 2
+      <span class="small">Spalt 1 geschlossen</span>
+    </button>
+    <button class="mode-btn psum" id="btnPsum" onclick="setMode('psum')">
+      <span class="big">&#9646;&#9646;</span>
+      P₁+P₂ vs P₁₂
+      <span class="small">Klassisch vs. Quantum</span>
+    </button>
+  </div>
+
+  <div class="controls-bar">
+    <div class="ctrl-group">
+      <div class="ctrl-label">Spaltabstand d = <span id="valD">4.0</span> &mu;m</div>
+      <input type="range" id="slD" min="1" max="10" step="0.1" value="4.0">
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-label">Spaltbreite a = <span id="valA">1.0</span> &mu;m</div>
+      <input type="range" id="slA" min="0.3" max="4" step="0.1" value="1.0">
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-label">Wellenl&auml;nge &lambda; = <span id="valL">0.5</span> &mu;m</div>
+      <input type="range" id="slL" min="0.1" max="1.5" step="0.05" value="0.5">
+    </div>
+  </div>
+
+  <div class="main-grid">
+    <div class="panel">
+      <div class="panel-label">Aufbau</div>
+      <canvas id="cvSetup" width="220" height="420"></canvas>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Detektorschirm — Messpunkte</div>
+      <canvas id="cvScreen" width="460" height="420"></canvas>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Intensit&auml;t I(y)</div>
+      <canvas id="cvProf" width="170" height="420"></canvas>
+    </div>
+  </div>
+
+  <div class="bottom-row">
+    <div class="panel" style="flex-direction:row;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px;padding:10px 14px;">
+      <button class="ctrl primary" id="btnOne">1 Elektron</button>
+      <button class="ctrl accent" id="btnHundred">100 Elektronen</button>
+      <button class="ctrl accent" id="btnThousand">1000 Elektronen</button>
+      <button class="ctrl" id="btnReset">Reset</button>
+    </div>
+    <div class="panel" style="justify-content:center;">
+      <div class="counter">Elektronen: <span id="cN" style="color:#5ba3d9">0</span></div>
+      <div class="msg" id="msg">Beide Spalte offen — Interferenzmuster erwartet.</div>
+    </div>
+  </div>
+
+  <!-- Key insight -->
+  <div class="insight">
+    <div class="row">
+      <div class="eq blue">P₁₂(y) = |ψ₁ + ψ₂|² &nbsp;=&nbsp; P₁ + P₂ + <strong>2Re(ψ₁*ψ₂)</strong><br><small>Interferenzterm — nur wenn beide Spalte kohärent offen</small></div>
+      <div class="eq orange">P₁(y) &nbsp;=&nbsp; |ψ₁|² &nbsp;&nbsp; Spalt 2 geschlossen<br><small>Nur Beugung an Spalt 1</small></div>
+      <div class="eq green">P₂(y) &nbsp;=&nbsp; |ψ₂|² &nbsp;&nbsp; Spalt 1 geschlossen<br><small>Nur Beugung an Spalt 2</small></div>
+      <div class="eq purple"><span class="key">P₁₂ ≠ P₁ + P₂</span><br><small>Der Interferenzterm ist real — klassisch unmöglich</small></div>
+    </div>
+    <div class="note">
+      <strong>Bach et al. 2013</strong> realisierten Feynmans Gedankenexperiment mit einer beweglichen Maske (62 nm Spalte) —
+      und zeigten P₁, P₂ und P₁₂ für einzelne Elektronen direkt.
+      &nbsp;&nbsp;&#10148;&nbsp;&nbsp;
+      <strong>Im Prinzip:</strong> Es würde genügen zu <em>wissen</em> durch welchen Spalt das Elektron ging —
+      auch ohne ihn mechanisch zu schließen — um das Interferenzmuster kollabieren zu lassen.
+      Das ist Bohrs Komplementarität. (Ketterle et al., <em>Phys. Rev. Lett.</em> 135, 043601, 2025)
+    </div>
+  </div>
+
+  <div class="ref">R. Bach, D. Pope, S.-H. Liou, H. Batelaan — <em>New Journal of Physics</em> 15, 033018 (2013)</div>
+  <div class="tum-badge">TUM — Experimentalphysik 4</div>
+</div>
+
+<script>
+const SW=460, SH=420, PW=170, PH=420, AW=220, AH=420;
+const YMAX=40, L=200;
+let params = { d:4.0, a:1.0, lam:0.5 };
+let mode = 'p12'; // p12, p1, p2, psum
+let electrons = [];
+
+// ── Physics ───────────────────────────────────────────────────────────────
+function sinc(x){ return Math.abs(x)<1e-8?1:Math.sin(x)/x; }
+
+function envelope(y,p){
+  const sinTh=y/Math.sqrt(y*y+L*L);
+  const beta=Math.PI*p.a*sinTh/p.lam;
+  return sinc(beta)*sinc(beta);
+}
+
+function Ip12(y,p){
+  const sinTh=y/Math.sqrt(y*y+L*L);
+  const beta=Math.PI*p.a*sinTh/p.lam;
+  const delta=Math.PI*p.d*sinTh/p.lam;
+  return sinc(beta)*sinc(beta)*Math.cos(delta)*Math.cos(delta);
+}
+
+function Ip1(y,p){
+  // Single slit centered at +d/2
+  const sinTh=y/Math.sqrt(y*y+L*L);
+  const beta=Math.PI*p.a*(sinTh - p.d/2/Math.sqrt((p.d/2)*(p.d/2)+L*L))/p.lam;
+  // simpler: shift center
+  const yshift=y-p.d/2*L/Math.sqrt((p.d/2)*(p.d/2)+L*L)*0.8;
+  const sinTh2=yshift/Math.sqrt(yshift*yshift+L*L);
+  const beta2=Math.PI*p.a*sinTh2/p.lam;
+  return 0.5*sinc(beta2)*sinc(beta2);
+}
+
+function Ip2(y,p){
+  const yshift=y+p.d/2*L/Math.sqrt((p.d/2)*(p.d/2)+L*L)*0.8;
+  const sinTh2=yshift/Math.sqrt(yshift*yshift+L*L);
+  const beta2=Math.PI*p.a*sinTh2/p.lam;
+  return 0.5*sinc(beta2)*sinc(beta2);
+}
+
+function Isum(y,p){ return Ip1(y,p)+Ip2(y,p); }
+
+function Icurrent(y){
+  if(mode==='p12') return Ip12(y,params);
+  if(mode==='p1')  return Ip1(y,params);
+  if(mode==='p2')  return Ip2(y,params);
+  return Ip12(y,params); // psum shows p12 dots
+}
+
+const NY=2000;
+function buildCDF(){
+  const dy=2*YMAX/NY;
+  const cdf=new Float64Array(NY+1);
+  let sum=0;
+  for(let i=0;i<NY;i++){
+    const y=-YMAX+(i+0.5)*dy;
+    sum+=Math.max(0,Icurrent(y)); cdf[i+1]=sum;
+  }
+  for(let i=0;i<=NY;i++) cdf[i]/=(sum||1);
+  return {cdf,dy};
+}
+let cdfData=null;
+function rebuildCDF(){ cdfData=buildCDF(); }
+
+function sampleY(){
+  const u=Math.random();
+  let lo=0,hi=NY;
+  while(hi-lo>1){const mid=(lo+hi)>>1; if(cdfData.cdf[mid]<u)lo=mid;else hi=mid;}
+  const t=(u-cdfData.cdf[lo])/(cdfData.cdf[hi]-cdfData.cdf[lo]+1e-30);
+  return -YMAX+(lo+t)*cdfData.dy;
+}
+
+// ── Mode colors ───────────────────────────────────────────────────────────
+function modeColor(){
+  if(mode==='p12')  return {r:80,g:170,b:255};
+  if(mode==='p1')   return {r:232,g:160,b:48};
+  if(mode==='p2')   return {r:64,g:176,b:96};
+  return {r:80,g:170,b:255}; // psum
+}
+
+// ── Canvas contexts ───────────────────────────────────────────────────────
+const ctxA=document.getElementById('cvSetup').getContext('2d');
+const ctxS=document.getElementById('cvScreen').getContext('2d');
+const ctxP=document.getElementById('cvProf').getContext('2d');
+function yToPixel(y){ return SH/2-y/YMAX*SH/2*0.92; }
+
+// ── Setup drawing ─────────────────────────────────────────────────────────
+function drawSetup(){
+  ctxA.fillStyle='#0a0e1a'; ctxA.fillRect(0,0,AW,AH);
+  const blendX=88, screenX=200;
+  const slitY1=AH/2-params.d/2/YMAX*AH*0.5;
+  const slitY2=AH/2+params.d/2/YMAX*AH*0.5;
+  const slitH=Math.max(3,params.a/YMAX*AH*0.5);
+  const srcX=20;
+
+  // Source
+  ctxA.beginPath(); ctxA.arc(srcX,AH/2,12,0,2*Math.PI);
+  ctxA.strokeStyle='#0065bd'; ctxA.lineWidth=2; ctxA.stroke();
+  ctxA.fillStyle='#0d1f35'; ctxA.fill();
+  ctxA.fillStyle='#5ba3d9'; ctxA.font='bold 10px Segoe UI,Arial,sans-serif';
+  ctxA.textAlign='center'; ctxA.fillText('e⁻',srcX,AH/2+4);
+  ctxA.font='10px Segoe UI,Arial,sans-serif'; ctxA.fillText('Quelle',srcX,14);
+
+  // Incoming waves
+  ctxA.strokeStyle='rgba(91,163,217,0.18)'; ctxA.lineWidth=1;
+  for(let i=-3;i<=3;i++){
+    ctxA.beginPath(); ctxA.moveTo(srcX+14,AH/2+i*11); ctxA.lineTo(blendX-2,AH/2+i*11); ctxA.stroke();
+  }
+
+  // Mask (Bach 2013 style — movable mask)
+  // Draw mask position indicator
+  ctxA.fillStyle='#1e2d45';
+  ctxA.font='9px Segoe UI,Arial,sans-serif'; ctxA.textAlign='center';
+  ctxA.fillText('Maske',blendX-14,AH-8);
+
+  // Barrier
+  const slit1open = (mode==='p12'||mode==='p1'||mode==='psum');
+  const slit2open = (mode==='p12'||mode==='p2'||mode==='psum');
+
+  ctxA.fillStyle='#2a3d55';
+  // Top wall always
+  ctxA.fillRect(blendX-3,0,7,slitY1-slitH/2);
+  // Middle wall
+  ctxA.fillRect(blendX-3,slitY1+slitH/2,7,slitY2-slitH/2-(slitY1+slitH/2));
+  // Bottom wall always
+  ctxA.fillRect(blendX-3,slitY2+slitH/2,7,AH-(slitY2+slitH/2));
+
+  // Slit 1
+  if(!slit1open){
+    // Mask covers slit 1
+    ctxA.fillStyle='#8b3020';
+    ctxA.fillRect(blendX-3,slitY1-slitH/2,14,slitH);
+    ctxA.strokeStyle='#e74c3c'; ctxA.lineWidth=1.5;
+    ctxA.strokeRect(blendX-3,slitY1-slitH/2,14,slitH);
+    ctxA.fillStyle='#e74c3c'; ctxA.font='bold 9px Segoe UI,Arial,sans-serif';
+    ctxA.textAlign='center'; ctxA.fillText('✕',blendX+4,slitY1+4);
+  }
+
+  // Slit 2
+  if(!slit2open){
+    ctxA.fillStyle='#8b3020';
+    ctxA.fillRect(blendX-3,slitY2-slitH/2,14,slitH);
+    ctxA.strokeStyle='#e74c3c'; ctxA.lineWidth=1.5;
+    ctxA.strokeRect(blendX-3,slitY2-slitH/2,14,slitH);
+    ctxA.fillStyle='#e74c3c'; ctxA.font='bold 9px Segoe UI,Arial,sans-serif';
+    ctxA.textAlign='center'; ctxA.fillText('✕',blendX+4,slitY2+4);
+  }
+
+  // Slit labels
+  ctxA.font='9px Segoe UI,Arial,sans-serif'; ctxA.textAlign='left';
+  ctxA.fillStyle=slit1open?'#8899aa':'#e74c3c';
+  ctxA.fillText('Spalt 1',blendX+6,slitY1-2);
+  ctxA.fillStyle=slit2open?'#8899aa':'#e74c3c';
+  ctxA.fillText('Spalt 2',blendX+6,slitY2+12);
+
+  // Diffracted waves from open slits
+  const waveColors={'p12':'rgba(91,163,217,','p1':'rgba(232,160,48,','p2':'rgba(64,176,96,','psum':'rgba(91,163,217,'};
+  const wc=waveColors[mode];
+  if(slit1open){
+    for(let r=14;r<=80;r+=18){
+      ctxA.beginPath(); ctxA.arc(blendX+2,slitY1,r,-Math.PI*0.65,Math.PI*0.65);
+      ctxA.strokeStyle=`${wc}${0.11-r*0.001})`; ctxA.lineWidth=1; ctxA.stroke();
+    }
+  }
+  if(slit2open){
+    for(let r=14;r<=80;r+=18){
+      ctxA.beginPath(); ctxA.arc(blendX+2,slitY2,r,-Math.PI*0.65,Math.PI*0.65);
+      ctxA.strokeStyle=`${wc}${0.11-r*0.001})`; ctxA.lineWidth=1; ctxA.stroke();
+    }
+  }
+
+  // Screen
+  ctxA.fillStyle='#2a3d55'; ctxA.fillRect(screenX,0,5,AH);
+  ctxA.fillStyle='#8899aa'; ctxA.font='10px Segoe UI,Arial,sans-serif';
+  ctxA.textAlign='center'; ctxA.fillText('Schirm',screenX+2,12);
+  ctxA.fillText('Blende',blendX,AH-18);
+
+  // d annotation
+  ctxA.strokeStyle='rgba(140,140,140,0.3)'; ctxA.lineWidth=1; ctxA.setLineDash([3,3]);
+  ctxA.beginPath(); ctxA.moveTo(blendX-16,slitY1); ctxA.lineTo(blendX-16,slitY2); ctxA.stroke();
+  ctxA.setLineDash([]);
+  ctxA.fillStyle='#8899aa'; ctxA.font='10px Segoe UI,Arial,sans-serif';
+  ctxA.textAlign='right'; ctxA.fillText('d',blendX-18,(slitY1+slitY2)/2+4);
+}
+
+// ── Profile ───────────────────────────────────────────────────────────────
+function drawProfile(){
+  ctxP.fillStyle='#0a0e1a'; ctxP.fillRect(0,0,PW,PH);
+  let mx=0;
+  const p12v=new Float32Array(PH), p1v=new Float32Array(PH),
+        p2v=new Float32Array(PH), sumv=new Float32Array(PH);
+  for(let r=0;r<PH;r++){
+    const y=YMAX*(1-2*r/PH)*0.92;
+    p12v[r]=Math.max(0,Ip12(y,params));
+    p1v[r]=Math.max(0,Ip1(y,params));
+    p2v[r]=Math.max(0,Ip2(y,params));
+    sumv[r]=p1v[r]+p2v[r];
+    const m=Math.max(p12v[r],sumv[r]);
+    if(m>mx) mx=m;
+  }
+
+  function drawCurve(vals, col, lw, dash){
+    ctxP.beginPath();
+    if(dash) ctxP.setLineDash(dash);
+    for(let r=0;r<PH;r++){const x=8+(vals[r]/mx)*(PW-22); r===0?ctxP.moveTo(x,r):ctxP.lineTo(x,r);}
+    ctxP.strokeStyle=col; ctxP.lineWidth=lw; ctxP.stroke();
+    ctxP.setLineDash([]);
+  }
+
+  if(mode==='psum'){
+    // Show all three + sum
+    drawCurve(p1v,'rgba(232,160,48,0.5)',1.2,[]);
+    drawCurve(p2v,'rgba(64,176,96,0.5)',1.2,[]);
+    drawCurve(sumv,'rgba(160,100,240,0.85)',2,[4,3]); // P1+P2 dashed
+    drawCurve(p12v,'rgba(80,170,255,0.95)',2.5,[]); // P12 solid
+    // Legend
+    ctxP.font='9px Segoe UI,Arial,sans-serif'; ctxP.textAlign='left';
+    ctxP.fillStyle='rgba(80,170,255,0.9)'; ctxP.fillText('P₁₂',4,14);
+    ctxP.fillStyle='rgba(160,100,240,0.85)'; ctxP.fillText('P₁+P₂',4,26);
+    ctxP.fillStyle='rgba(232,160,48,0.7)'; ctxP.fillText('P₁',4,38);
+    ctxP.fillStyle='rgba(64,176,96,0.7)'; ctxP.fillText('P₂',4,50);
+  } else {
+    // Show current + p12 faint reference
+    if(mode!=='p12'){
+      drawCurve(p12v,'rgba(80,170,255,0.2)',1.2,[3,3]);
+    }
+    const cols={'p12':'rgba(80,170,255,0.9)','p1':'rgba(232,160,48,0.9)','p2':'rgba(64,176,96,0.9)'};
+    const cur={'p12':p12v,'p1':p1v,'p2':p2v}[mode];
+    drawCurve(cur,cols[mode],2.5,[]);
+    // Fill
+    ctxP.beginPath();
+    for(let r=0;r<PH;r++){const x=8+(cur[r]/mx)*(PW-22); r===0?ctxP.moveTo(x,r):ctxP.lineTo(x,r);}
+    ctxP.lineTo(8,PH); ctxP.lineTo(8,0); ctxP.closePath();
+    const fc={'p12':'rgba(80,170,255,0.12)','p1':'rgba(232,160,48,0.12)','p2':'rgba(64,176,96,0.12)'}[mode];
+    ctxP.fillStyle=fc; ctxP.fill();
+    ctxP.font='10px Segoe UI,Arial,sans-serif'; ctxP.textAlign='left';
+    const lc={'p12':'rgba(80,170,255,0.8)','p1':'rgba(232,160,48,0.8)','p2':'rgba(64,176,96,0.8)'}[mode];
+    const ll={'p12':'P₁₂(y)','p1':'P₁(y)','p2':'P₂(y)'}[mode];
+    ctxP.fillStyle=lc; ctxP.fillText(ll,4,14);
+    if(mode!=='p12'){ ctxP.fillStyle='rgba(80,170,255,0.4)'; ctxP.fillText('P₁₂',4,26); }
+  }
+
+  ctxP.strokeStyle='rgba(255,255,255,0.06)'; ctxP.lineWidth=0.5;
+  ctxP.beginPath(); ctxP.moveTo(0,PH/2); ctxP.lineTo(PW,PH/2); ctxP.stroke();
+}
+
+// ── Screen ────────────────────────────────────────────────────────────────
+function clearScreen(){
+  ctxS.fillStyle='#0a0e1a'; ctxS.fillRect(0,0,SW,SH);
+  ctxS.strokeStyle='rgba(255,255,255,0.05)'; ctxS.lineWidth=0.5;
+  ctxS.beginPath(); ctxS.moveTo(0,SH/2); ctxS.lineTo(SW,SH/2); ctxS.stroke();
+  // Faint guide
+  const c=modeColor();
+  let mx=0;
+  const pv=new Float32Array(SH);
+  for(let r=0;r<SH;r++){const y=YMAX*(1-2*r/SH)*0.92; pv[r]=Math.max(0,Icurrent(y)); if(pv[r]>mx)mx=pv[r];}
+  for(let r=0;r<SH;r++){
+    ctxS.fillStyle=`rgba(${c.r},${c.g},${c.b},${(pv[r]/mx)*0.07})`;
+    ctxS.fillRect(0,r,SW,1);
+  }
+}
+
+function drawElectron(y,flash){
+  const py=yToPixel(y);
+  const px=SW/2+(Math.random()-0.5)*7;
+  const c=modeColor();
+  ctxS.beginPath(); ctxS.arc(px,py,1.7,0,2*Math.PI);
+  ctxS.fillStyle=`rgba(${c.r},${c.g},${c.b},0.85)`; ctxS.fill();
+  if(flash){
+    let frame=0;
+    function anim(){
+      if(frame>20)return;
+      const f=frame/20;
+      ctxS.beginPath(); ctxS.arc(px,py,16*(1-f),0,2*Math.PI);
+      ctxS.strokeStyle=`rgba(240,165,0,${0.8*(1-f)})`; ctxS.lineWidth=1.5; ctxS.stroke();
+      ctxS.beginPath(); ctxS.arc(px,py,2.5,0,2*Math.PI);
+      ctxS.fillStyle=`rgb(${c.r},${c.g},${c.b})`; ctxS.fill();
+      frame++; requestAnimationFrame(anim);
+    }
+    anim();
+  }
+  return {px,py};
+}
+
+function updateMsg(){
+  const msg=document.getElementById('msg');
+  const n=electrons.length;
+  if(mode==='p12'){
+    msg.className='msg blue';
+    msg.textContent=n<200?'Beide Spalte offen — das Elektron "geht durch beide" — Interferenz entsteht.':'Klares Interferenzmuster: P₁₂ ≠ P₁ + P₂ — der Interferenzterm ist real.';
+  } else if(mode==='p1'){
+    msg.className='msg orange';
+    msg.textContent=n<200?'Nur Spalt 1 offen — nur Beugung, kein Interferenzterm.':'Beugungsmuster von Spalt 1 allein — P₁(y).';
+  } else if(mode==='p2'){
+    msg.className='msg green';
+    msg.textContent=n<200?'Nur Spalt 2 offen — nur Beugung, kein Interferenzterm.':'Beugungsmuster von Spalt 2 allein — P₂(y).';
+  } else {
+    msg.className='msg purple';
+    msg.textContent='Vergleich: P₁₂ (blau, solid) vs. P₁+P₂ (lila, gestrichelt) — der Unterschied ist der Interferenzterm.';
+  }
+  document.getElementById('cN').textContent=n;
+}
+
+function setMode(m){
+  mode=m;
+  ['p12','p1','p2','psum'].forEach(id=>{
+    const btn=document.getElementById('btnP'+id.replace('p','').replace('sum','Sum').replace('12','12'));
+    if(btn) btn.className=btn.className.replace(' active','');
+  });
+  // Actually update active state properly
+  document.getElementById('btnP12').className='mode-btn p12'+(m==='p12'?' active':'');
+  document.getElementById('btnP1').className='mode-btn p1'+(m==='p1'?' active':'');
+  document.getElementById('btnP2').className='mode-btn p2'+(m==='p2'?' active':'');
+  document.getElementById('btnPsum').className='mode-btn psum'+(m==='psum'?' active':'');
+  rebuildCDF(); drawSetup(); drawProfile(); clearScreen();
+  electrons=[]; updateMsg();
+}
+
+function shootOne(){
+  const y=sampleY(); electrons.push(drawElectron(y,true)); updateMsg();
+}
+function shootN(n){
+  for(let i=0;i<n;i++){const y=sampleY(); electrons.push(drawElectron(y,false));} updateMsg();
+}
+function reset(){ electrons=[]; clearScreen(); updateMsg(); }
+
+function fullRedraw(){
+  rebuildCDF(); drawSetup(); drawProfile(); clearScreen(); electrons=[]; updateMsg();
+}
+
+document.getElementById('slD').addEventListener('input',function(){
+  params.d=parseFloat(this.value); document.getElementById('valD').textContent=params.d.toFixed(1); fullRedraw();
+});
+document.getElementById('slA').addEventListener('input',function(){
+  params.a=parseFloat(this.value); document.getElementById('valA').textContent=params.a.toFixed(1); fullRedraw();
+});
+document.getElementById('slL').addEventListener('input',function(){
+  params.lam=parseFloat(this.value); document.getElementById('valL').textContent=params.lam.toFixed(2); fullRedraw();
+});
+document.getElementById('btnOne').addEventListener('click',shootOne);
+document.getElementById('btnHundred').addEventListener('click',function(){shootN(100);});
+document.getElementById('btnThousand').addEventListener('click',function(){shootN(1000);});
+document.getElementById('btnReset').addEventListener('click',reset);
+
+fullRedraw();
+</script>
+</body>
+</html>

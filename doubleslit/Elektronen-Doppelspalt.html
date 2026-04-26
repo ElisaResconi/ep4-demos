@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elektronen-Doppelspalt — EP4</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #0a0e1a;
+  color: #e8edf5;
+  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  padding: 24px 16px;
+  min-height: 100vh;
+}
+#app { width: 100%; max-width: 980px; }
+
+.title { font-size: 17px; font-weight: 600; letter-spacing: 0.02em; margin-bottom: 3px; }
+.subtitle { font-size: 12px; color: #8899aa; margin-bottom: 16px; }
+
+/* Controls bar */
+.controls-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-end;
+  background: #111827;
+  border: 1px solid #1e2d45;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+}
+.ctrl-group { display: flex; flex-direction: column; gap: 4px; min-width: 130px; flex: 1; }
+.ctrl-label { font-size: 11px; color: #8899aa; letter-spacing: 0.04em; }
+.ctrl-label span { color: #5ba3d9; font-weight: 600; }
+input[type=range] { width: 100%; accent-color: #0065bd; cursor: pointer; }
+
+.mode-btns { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+button {
+  background: transparent; color: #e8edf5;
+  border: 1px solid #1e2d45; border-radius: 7px;
+  padding: 7px 14px; font-size: 12px; cursor: pointer;
+  transition: all 0.15s; font-family: inherit; white-space: nowrap;
+}
+button:hover { border-color: #0065bd; color: #5ba3d9; }
+button.active-double { background: #0065bd; border-color: #0065bd; color: #fff; font-weight: 600; }
+button.active-single { background: #c0392b; border-color: #c0392b; color: #fff; font-weight: 600; }
+button.primary { background: #0065bd; border-color: #0065bd; color: #fff; font-weight: 600; }
+button.primary:hover { background: #0052a0; }
+button.accent { border-color: #f0a500; color: #f0a500; }
+button.accent:hover { background: rgba(240,165,0,0.08); }
+button.danger { border-color: #e74c3c; color: #e74c3c; }
+button.danger:hover { background: rgba(231,76,60,0.08); }
+
+/* Main layout */
+.main-grid {
+  display: grid;
+  grid-template-columns: 260px 1fr 200px;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.panel {
+  background: #111827;
+  border: 1px solid #1e2d45;
+  border-radius: 10px;
+  padding: 10px;
+  display: flex; flex-direction: column; align-items: center;
+}
+.panel-label {
+  font-size: 10px; color: #8899aa;
+  letter-spacing: 0.05em; text-transform: uppercase;
+  align-self: flex-start; margin-bottom: 6px;
+}
+canvas { border-radius: 5px; display: block; }
+
+/* Bottom row */
+.bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.btn-row {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  justify-content: center; align-items: center;
+}
+.counter { font-size: 12px; color: #8899aa; text-align: center; margin-top: 6px; }
+.counter span { color: #5ba3d9; font-weight: 600; }
+
+.msg {
+  font-size: 12px; color: #8899aa;
+  text-align: center; font-style: italic;
+  min-height: 18px; margin-top: 4px;
+  transition: color 0.3s;
+}
+.msg.highlight { color: #f0a500; }
+.msg.red { color: #e74c3c; }
+
+.feynman {
+  background: #0d1a2e;
+  border-left: 3px solid #0065bd;
+  border-radius: 0 8px 8px 0;
+  padding: 10px 16px;
+  font-size: 12px; color: #8baac8;
+  line-height: 1.6; margin-top: 4px;
+  font-style: italic;
+}
+.feynman strong { color: #5ba3d9; font-style: normal; }
+.tum-badge { font-size: 10px; color: #1e2d45; text-align: right; margin-top: 10px; letter-spacing: 0.08em; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="title">Elektronen-Doppelspalt</div>
+  <div class="subtitle">Quanteninterferenz — das einzige Mysterium der Quantenmechanik (Feynman)</div>
+
+  <div class="controls-bar">
+    <div class="ctrl-group">
+      <div class="ctrl-label">Spaltabstand d = <span id="valD">4.0</span> &mu;m</div>
+      <input type="range" id="slD" min="1" max="10" step="0.1" value="4.0">
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-label">Spaltbreite a = <span id="valA">1.0</span> &mu;m</div>
+      <input type="range" id="slA" min="0.3" max="4" step="0.1" value="1.0">
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-label">Wellenl&auml;nge &lambda; = <span id="valL">0.5</span> &mu;m</div>
+      <input type="range" id="slL" min="0.1" max="1.5" step="0.05" value="0.5">
+    </div>
+    <div class="mode-btns">
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <div class="ctrl-label">Modus</div>
+        <div style="display:flex;gap:6px;">
+          <button id="btnDouble" class="active-double">&#9646;&#9646; Doppelspalt</button>
+          <button id="btnSingle" class="">&#9646; Einzelspalt</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-grid">
+    <!-- Left: apparatus -->
+    <div class="panel">
+      <div class="panel-label">Aufbau</div>
+      <canvas id="cvSetup" width="240" height="420"></canvas>
+    </div>
+
+    <!-- Center: detector screen -->
+    <div class="panel">
+      <div class="panel-label">Detektorschirm — Messpunkte</div>
+      <canvas id="cvScreen" width="460" height="420"></canvas>
+    </div>
+
+    <!-- Right: intensity profile -->
+    <div class="panel">
+      <div class="panel-label">Intensit&auml;t I(y)</div>
+      <canvas id="cvProfile" width="180" height="420"></canvas>
+    </div>
+  </div>
+
+  <div class="bottom-row">
+    <div class="panel" style="flex-direction:row; align-items:center; justify-content:center; flex-wrap:wrap; gap:8px; padding:10px 14px;">
+      <button class="primary" id="btnOne">1 Elektron</button>
+      <button class="accent" id="btnHundred">100 Elektronen</button>
+      <button class="accent" id="btnThousand">1000 Elektronen</button>
+      <button id="btnReset">Reset</button>
+    </div>
+    <div class="panel" style="justify-content:center;">
+      <div class="counter" id="counter">Elektronen: <span>0</span></div>
+      <div class="msg" id="msg">Schicke Elektronen durch den Spalt — eines nach dem anderen.</div>
+    </div>
+  </div>
+
+  <div class="feynman">
+    <strong>Feynman (1965):</strong> &bdquo;Das Doppelspaltexperiment enth&auml;lt das einzige Mysterium der Quantenmechanik.
+    Wenn du es verstehst, verstehst du die Quantenmechanik.&ldquo;<br>
+    <span style="color:#5ba3d9;font-style:normal;">&#10142;</span>
+    Solange wir nicht wissen, durch welchen Spalt das Elektron geht: <strong>Interferenz</strong>.
+    Sobald wir es wissen (= Messung): <strong>kein Muster</strong>.
+  </div>
+  <div class="tum-badge">TUM — Experimentalphysik 4</div>
+</div>
+
+<script>
+const SW = 460, SH = 420;  // screen canvas
+const PW = 180, PH = 420;  // profile canvas
+const AW = 240, AH = 420;  // apparatus canvas
+
+let params = { d: 4.0, a: 1.0, lam: 0.5, mode: 'double' };
+let electrons = [];
+let animating = false;
+
+// ---- Physics ----
+// Single slit diffraction envelope: sinc^2(pi*a*sin(th)/lam)
+// Double slit: sinc^2 * cos^2(pi*d*sin(th)/lam)
+// We parameterize by y on screen, L = screen distance (fixed)
+const L = 200; // arbitrary screen distance units, scaled
+
+function intensity(y, p) {
+  // y in same units as d, a, lam (micrometers)
+  const sinTh = y / Math.sqrt(y*y + L*L);
+  const beta  = Math.PI * p.a * sinTh / p.lam;
+  const sinc  = Math.abs(beta) < 1e-8 ? 1 : Math.sin(beta)/beta;
+  const sinc2 = sinc*sinc;
+  if (p.mode === 'single') return sinc2;
+  const delta = Math.PI * p.d * sinTh / p.lam;
+  return sinc2 * Math.cos(delta) * Math.cos(delta);
+}
+
+// Build CDF along y axis
+const NY = 2000;
+function buildCDF(p) {
+  const ymax = 40; // micrometers on screen
+  const dy = 2*ymax/NY;
+  const cdf = new Float64Array(NY+1);
+  let sum = 0;
+  for (let i = 0; i < NY; i++) {
+    const y = -ymax + (i+0.5)*dy;
+    sum += intensity(y, p);
+    cdf[i+1] = sum;
+  }
+  for (let i = 0; i <= NY; i++) cdf[i] /= sum;
+  return { cdf, ymax, dy, NY };
+}
+
+let cdfData = null;
+
+function sampleY() {
+  const u = Math.random();
+  let lo = 0, hi = NY;
+  while (hi-lo > 1) {
+    const mid = (lo+hi)>>1;
+    if (cdfData.cdf[mid] < u) lo = mid; else hi = mid;
+  }
+  const t = (u-cdfData.cdf[lo])/(cdfData.cdf[hi]-cdfData.cdf[lo]+1e-30);
+  return -cdfData.ymax + (lo+t)*cdfData.dy;
+}
+
+// ---- Coordinate mapping ----
+// Screen canvas: y in [-ymax, ymax] -> pixel [0, SH]
+const YMAX = 40;
+function yToPixel(y) { return SH/2 - y/YMAX * SH/2 * 0.92; }
+function xNoise() { return (Math.random()-0.5)*6; } // slight x scatter for realism
+
+// ---- Drawing ----
+const ctxS = document.getElementById('cvScreen').getContext('2d');
+const ctxP = document.getElementById('cvProfile').getContext('2d');
+const ctxA = document.getElementById('cvSetup').getContext('2d');
+
+function drawSetup() {
+  ctxA.fillStyle = '#0a0e1a';
+  ctxA.fillRect(0,0,AW,AH);
+
+  // Electron source (left)
+  const srcX = 28, blendX = 100, screenX = 210;
+  const slitY1 = AH/2 - params.d/2/YMAX * AH*0.5;
+  const slitY2 = AH/2 + params.d/2/YMAX * AH*0.5;
+  const slitH = Math.max(3, params.a/YMAX * AH*0.5);
+
+  // Source label
+  ctxA.fillStyle = '#5ba3d9';
+  ctxA.font = '11px Segoe UI, Arial, sans-serif';
+  ctxA.textAlign = 'center';
+  ctxA.fillText('e⁻ Quelle', srcX, 18);
+
+  // Source circle
+  ctxA.beginPath();
+  ctxA.arc(srcX, AH/2, 14, 0, 2*Math.PI);
+  ctxA.strokeStyle = '#0065bd';
+  ctxA.lineWidth = 2;
+  ctxA.stroke();
+  ctxA.fillStyle = '#0d1f35';
+  ctxA.fill();
+  ctxA.fillStyle = '#5ba3d9';
+  ctxA.font = 'bold 13px Segoe UI, Arial, sans-serif';
+  ctxA.fillText('e⁻', srcX, AH/2+5);
+
+  // Incoming wave lines
+  ctxA.strokeStyle = 'rgba(91,163,217,0.25)';
+  ctxA.lineWidth = 1;
+  for (let i = -3; i <= 3; i++) {
+    ctxA.beginPath();
+    ctxA.moveTo(srcX+16, AH/2 + i*14);
+    ctxA.lineTo(blendX-2, AH/2 + i*14);
+    ctxA.stroke();
+  }
+
+  // Barrier
+  ctxA.fillStyle = '#2a3d55';
+  if (params.mode === 'double') {
+    // top wall
+    ctxA.fillRect(blendX-4, 0, 8, slitY1 - slitH/2);
+    // middle wall
+    ctxA.fillRect(blendX-4, slitY1+slitH/2, 8, slitY2-slitH/2 - (slitY1+slitH/2));
+    // bottom wall
+    ctxA.fillRect(blendX-4, slitY2+slitH/2, 8, AH - (slitY2+slitH/2));
+    // slit labels
+    ctxA.fillStyle = '#f0a500';
+    ctxA.font = '10px Segoe UI, Arial, sans-serif';
+    ctxA.textAlign = 'left';
+    ctxA.fillText('Spalt 1', blendX+6, slitY1);
+    ctxA.fillText('Spalt 2', blendX+6, slitY2+4);
+  } else {
+    // single slit
+    const midY = AH/2;
+    ctxA.fillRect(blendX-4, 0, 8, midY - slitH/2);
+    ctxA.fillRect(blendX-4, midY+slitH/2, 8, AH-(midY+slitH/2));
+    ctxA.fillStyle = '#e74c3c';
+    ctxA.font = '10px Segoe UI, Arial, sans-serif';
+    ctxA.textAlign = 'left';
+    ctxA.fillText('Spalt', blendX+6, midY+4);
+    // crossed out slit 2
+    ctxA.strokeStyle = 'rgba(231,76,60,0.5)';
+    ctxA.lineWidth = 1.5;
+    ctxA.beginPath();
+    ctxA.moveTo(blendX+6, slitY2-8); ctxA.lineTo(blendX+40, slitY2+8); ctxA.stroke();
+    ctxA.beginPath();
+    ctxA.moveTo(blendX+6, slitY2+8); ctxA.lineTo(blendX+40, slitY2-8); ctxA.stroke();
+  }
+
+  // Diffracted waves (simplified arcs after slit)
+  if (params.mode === 'double') {
+    for (let s = 0; s < 2; s++) {
+      const cy = s === 0 ? slitY1 : slitY2;
+      for (let r = 15; r <= 80; r += 18) {
+        ctxA.beginPath();
+        ctxA.arc(blendX+2, cy, r, -Math.PI*0.6, Math.PI*0.6);
+        ctxA.strokeStyle = `rgba(91,163,217,${0.12 - r*0.001})`;
+        ctxA.lineWidth = 1;
+        ctxA.stroke();
+      }
+    }
+  } else {
+    const cy = AH/2;
+    for (let r = 15; r <= 100; r += 18) {
+      ctxA.beginPath();
+      ctxA.arc(blendX+2, cy, r, -Math.PI*0.65, Math.PI*0.65);
+      ctxA.strokeStyle = `rgba(231,76,60,${0.12 - r*0.001})`;
+      ctxA.lineWidth = 1;
+      ctxA.stroke();
+    }
+  }
+
+  // Screen
+  ctxA.fillStyle = '#2a3d55';
+  ctxA.fillRect(screenX, 0, 5, AH);
+  ctxA.fillStyle = '#8899aa';
+  ctxA.font = '10px Segoe UI, Arial, sans-serif';
+  ctxA.textAlign = 'center';
+  ctxA.fillText('Schirm', screenX+2, 12);
+
+  // Labels
+  ctxA.fillStyle = '#8899aa';
+  ctxA.font = '10px Segoe UI, Arial, sans-serif';
+  ctxA.textAlign = 'center';
+  ctxA.fillText('Blende', blendX, AH-6);
+  // d annotation
+  if (params.mode === 'double') {
+    ctxA.strokeStyle = 'rgba(240,165,0,0.4)';
+    ctxA.lineWidth = 1;
+    ctxA.setLineDash([3,3]);
+    ctxA.beginPath(); ctxA.moveTo(blendX-20, slitY1); ctxA.lineTo(blendX-20, slitY2); ctxA.stroke();
+    ctxA.setLineDash([]);
+    ctxA.fillStyle = '#f0a500';
+    ctxA.font = '10px Segoe UI, Arial, sans-serif';
+    ctxA.textAlign = 'right';
+    ctxA.fillText('d', blendX-22, (slitY1+slitY2)/2+4);
+  }
+}
+
+function drawProfile() {
+  ctxP.fillStyle = '#0a0e1a';
+  ctxP.fillRect(0,0,PW,PH);
+
+  // compute intensity profile
+  const col = params.mode === 'double' ? '#0065bd' : '#c0392b';
+  let maxI = 0;
+  const ivals = new Float32Array(PH);
+  for (let py = 0; py < PH; py++) {
+    const y = YMAX * (1 - 2*py/PH) * 0.92;
+    ivals[py] = intensity(y, params);
+    if (ivals[py] > maxI) maxI = ivals[py];
+  }
+
+  ctxP.beginPath();
+  for (let py = 0; py < PH; py++) {
+    const x = 8 + (ivals[py]/maxI) * (PW-20);
+    if (py === 0) ctxP.moveTo(x, py); else ctxP.lineTo(x, py);
+  }
+  ctxP.strokeStyle = col;
+  ctxP.lineWidth = 2;
+  ctxP.stroke();
+
+  // Fill under curve
+  ctxP.lineTo(8, PH); ctxP.lineTo(8, 0);
+  ctxP.closePath();
+  ctxP.fillStyle = params.mode === 'double' ? 'rgba(0,101,189,0.15)' : 'rgba(192,57,43,0.15)';
+  ctxP.fill();
+
+  // y=0 line
+  ctxP.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctxP.lineWidth = 0.5;
+  ctxP.beginPath(); ctxP.moveTo(0,PH/2); ctxP.lineTo(PW,PH/2); ctxP.stroke();
+  ctxP.fillStyle = '#8899aa';
+  ctxP.font = '10px Segoe UI, Arial, sans-serif';
+  ctxP.textAlign = 'left';
+  ctxP.fillText('I(y)', 4, 14);
+}
+
+function clearScreen() {
+  ctxS.fillStyle = '#0a0e1a';
+  ctxS.fillRect(0,0,SW,SH);
+  // center line
+  ctxS.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctxS.lineWidth = 0.5;
+  ctxS.beginPath(); ctxS.moveTo(0,SH/2); ctxS.lineTo(SW,SH/2); ctxS.stroke();
+  // faint intensity guide
+  drawScreenGuide();
+}
+
+function drawScreenGuide() {
+  let maxI = 0;
+  const ivals = new Float32Array(SH);
+  for (let py = 0; py < SH; py++) {
+    const y = YMAX*(1-2*py/SH)*0.92;
+    ivals[py] = intensity(y, params);
+    if (ivals[py] > maxI) maxI = ivals[py];
+  }
+  for (let py = 0; py < SH; py++) {
+    const alpha = (ivals[py]/maxI)*0.07;
+    ctxS.fillStyle = params.mode==='double'
+      ? `rgba(0,101,189,${alpha})`
+      : `rgba(192,57,43,${alpha})`;
+    ctxS.fillRect(0, py, SW, 1);
+  }
+}
+
+function drawElectron(y, flash) {
+  const py = yToPixel(y);
+  const px = SW/2 + xNoise() + (Math.random()-0.5)*4;
+  electrons.push({px, py});
+  const col = params.mode==='double' ? 'rgba(80,170,255,0.85)' : 'rgba(231,120,100,0.85)';
+  ctxS.beginPath();
+  ctxS.arc(px, py, 1.6, 0, 2*Math.PI);
+  ctxS.fillStyle = col;
+  ctxS.fill();
+
+  if (flash) {
+    let frame = 0;
+    function anim() {
+      if (frame > 20) return;
+      const f = frame/20;
+      ctxS.beginPath();
+      ctxS.arc(px, py, 16*(1-f), 0, 2*Math.PI);
+      ctxS.strokeStyle = `rgba(240,165,0,${0.85*(1-f)})`;
+      ctxS.lineWidth = 1.5;
+      ctxS.stroke();
+      ctxS.beginPath(); ctxS.arc(px, py, 2.5, 0, 2*Math.PI);
+      ctxS.fillStyle = '#f0a500'; ctxS.fill();
+      frame++; requestAnimationFrame(anim);
+    }
+    anim();
+  }
+}
+
+function redrawAllElectrons() {
+  clearScreen();
+  const col = params.mode==='double' ? 'rgba(80,170,255,0.85)' : 'rgba(231,120,100,0.85)';
+  for (const e of electrons) {
+    ctxS.beginPath();
+    ctxS.arc(e.px, e.py, 1.6, 0, 2*Math.PI);
+    ctxS.fillStyle = col;
+    ctxS.fill();
+  }
+}
+
+function updateCounter() {
+  const n = electrons.length;
+  document.getElementById('counter').innerHTML = 'Elektronen: <span>'+n+'</span>';
+  const msg = document.getElementById('msg');
+  const isDouble = params.mode === 'double';
+  if (n === 0) {
+    msg.textContent = 'Schicke Elektronen durch den Spalt — eines nach dem anderen.';
+    msg.className = 'msg';
+  } else if (n < 20) {
+    msg.textContent = 'Einzelne Punkte — noch kein Muster erkennbar.';
+    msg.className = 'msg';
+  } else if (n < 150) {
+    msg.textContent = isDouble
+      ? 'Eine Struktur entsteht — aber wo genau landet das nächste Elektron?'
+      : 'Einzelspalt: eine breite, glatte Verteilung entsteht.';
+    msg.className = 'msg';
+  } else if (n < 500) {
+    msg.textContent = isDouble
+      ? 'Das Interferenzmuster wird sichtbar — obwohl jedes Elektron einzeln fliegt!'
+      : 'Kein Interferenzmuster — nur Beugung an einem Spalt.';
+    msg.className = isDouble ? 'msg highlight' : 'msg red';
+  } else {
+    msg.textContent = isDouble
+      ? 'Klares Interferenzmuster — jedes Elektron "weiß" von beiden Spalten.'
+      : 'Einzelspalt: keine Interferenz. Wir wissen durch welchen Spalt — das Muster verschwindet.';
+    msg.className = isDouble ? 'msg highlight' : 'msg red';
+  }
+}
+
+function shootOne() {
+  const y = sampleY();
+  drawElectron(y, true);
+  updateCounter();
+}
+
+function shootN(n) {
+  for (let i = 0; i < n; i++) {
+    const y = sampleY();
+    const py = yToPixel(y);
+    const px = SW/2 + (Math.random()-0.5)*8;
+    electrons.push({px, py});
+  }
+  redrawAllElectrons();
+  updateCounter();
+}
+
+function reset() {
+  electrons = [];
+  clearScreen();
+  updateCounter();
+}
+
+function fullRedraw() {
+  cdfData = buildCDF(params);
+  drawSetup();
+  drawProfile();
+  clearScreen();
+  electrons = [];
+  updateCounter();
+}
+
+// Sliders
+document.getElementById('slD').addEventListener('input', function() {
+  params.d = parseFloat(this.value);
+  document.getElementById('valD').textContent = params.d.toFixed(1);
+  fullRedraw();
+});
+document.getElementById('slA').addEventListener('input', function() {
+  params.a = parseFloat(this.value);
+  document.getElementById('valA').textContent = params.a.toFixed(1);
+  fullRedraw();
+});
+document.getElementById('slL').addEventListener('input', function() {
+  params.lam = parseFloat(this.value);
+  document.getElementById('valL').textContent = params.lam.toFixed(2);
+  fullRedraw();
+});
+
+// Mode buttons
+document.getElementById('btnDouble').addEventListener('click', function() {
+  params.mode = 'double';
+  this.className = 'active-double';
+  document.getElementById('btnSingle').className = '';
+  fullRedraw();
+});
+document.getElementById('btnSingle').addEventListener('click', function() {
+  params.mode = 'single';
+  this.className = 'active-single';
+  document.getElementById('btnDouble').className = '';
+  fullRedraw();
+});
+
+document.getElementById('btnOne').addEventListener('click', shootOne);
+document.getElementById('btnHundred').addEventListener('click', function(){ shootN(100); });
+document.getElementById('btnThousand').addEventListener('click', function(){ shootN(1000); });
+document.getElementById('btnReset').addEventListener('click', reset);
+
+// Init
+fullRedraw();
+</script>
+</body>
+</html>

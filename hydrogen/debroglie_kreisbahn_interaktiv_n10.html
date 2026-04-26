@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>de-Broglie-Welle auf der Kreisbahn</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: Helvetica, Arial, sans-serif;
+  background: #ffffff;
+  color: #1a1a1a;
+  padding: 24px;
+}
+@media (prefers-color-scheme: dark) {
+  body { background: #0f0f18; color: #e8e6de; }
+}
+h1 { font-size: 18px; font-weight: 600; margin-bottom: 20px; }
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+  max-width: 700px;
+}
+canvas { width: 100%; border-radius: 10px; }
+
+.ctrl { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.ctrl label { font-size: 13px; color: #5F5E5A; min-width: 24px; }
+@media (prefers-color-scheme: dark) { .ctrl label { color: #9c9a92; } }
+.ctrl input[type=range] { flex: 1; }
+.val { font-size: 15px; font-weight: 500; min-width: 40px; }
+
+.status { font-size: 14px; font-weight: 500; padding: 6px 14px; border-radius: 8px; display: inline-block; }
+.ok  { background: #E1F5EE; color: #085041; }
+.bad { background: #FCEBEB; color: #791F1F; }
+
+.formula { font-size: 13px; color: #5F5E5A; margin-top: 6px; }
+@media (prefers-color-scheme: dark) { .formula { color: #9c9a92; } }
+.formula strong { font-weight: 500; color: #1a1a1a; }
+@media (prefers-color-scheme: dark) { .formula strong { color: #e8e6de; } }
+
+.divider { border: none; border-top: 0.5px solid rgba(120,120,140,0.2); margin: 14px 0; }
+
+.btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
+button {
+  font-size: 13px;
+  padding: 5px 11px;
+  border-radius: 8px;
+  border: 0.5px solid rgba(120,120,140,0.35);
+  background: transparent;
+  cursor: pointer;
+  color: #1a1a1a;
+  transition: background 0.15s;
+}
+@media (prefers-color-scheme: dark) { button { color: #e8e6de; border-color: rgba(180,180,200,0.25); } }
+button:hover { background: rgba(120,120,140,0.1); }
+button.danger { color: #A32D2D; border-color: #F09595; }
+@media (prefers-color-scheme: dark) { button.danger { color: #F09595; } }
+
+.note { font-size: 12px; color: #B4B2A9; line-height: 1.6; margin-top: 12px; }
+</style>
+</head>
+<body>
+
+<h1>de-Broglie-Welle auf der Kreisbahn</h1>
+
+<div class="layout">
+
+<div>
+  <canvas id="cv" width="300" height="300"></canvas>
+</div>
+
+<div style="padding-top:8px;">
+  <div class="ctrl">
+    <label>n</label>
+    <input type="range" id="nSlider" min="0.5" max="10" step="0.05" value="1">
+    <span class="val" id="nVal">1.00</span>
+  </div>
+
+  <div style="margin: 10px 0 14px;">
+    <span id="statusBadge" class="status ok">erlaubt &#8212; stehende Welle</span>
+  </div>
+
+  <div class="formula">Randbedingung: &#968;(&#966; + 2&#960;) = &#968;(&#966;)</div>
+  <div class="formula" style="margin-top:4px;">2&#960;r = n &middot; &#955;,&nbsp;&nbsp; &#955; = h/p</div>
+  <div class="formula" style="margin-top:4px;">&#8594; p&middot;r = n&middot;&#8463;</div>
+  <div class="formula" style="margin-top:8px; font-size:15px;"><strong id="Lformula">L = 1 &middot; &#8463;</strong></div>
+
+  <hr class="divider">
+
+  <div style="font-size:12px; color:#B4B2A9; margin-bottom:8px;">Springe zu n:</div>
+  <div class="btn-row">
+    <button onclick="setN(1)">1</button>
+    <button onclick="setN(2)">2</button>
+    <button onclick="setN(3)">3</button>
+    <button onclick="setN(4)">4</button>
+    <button onclick="setN(5)">5</button>
+    <button onclick="setN(6)">6</button>
+    <button onclick="setN(7)">7</button>
+    <button onclick="setN(8)">8</button>
+    <button onclick="setN(9)">9</button>
+    <button onclick="setN(10)">10</button>
+    <button onclick="setN(2.4)" class="danger">2.4</button>
+    <button onclick="setN(5.7)" class="danger">5.7</button>
+  </div>
+
+  <div class="note">
+    Blaue Welle: &#968;(&#966;) = A&middot;sin(n&middot;&#966;)<br>
+    Roter Punkt: Sprung bei &#966; = 2&#960; wenn n &#8713; &#8484;
+  </div>
+</div>
+</div>
+
+<script>
+const canvas = document.getElementById('cv');
+const ctx = canvas.getContext('2d');
+const slider = document.getElementById('nSlider');
+const nValEl = document.getElementById('nVal');
+const statusEl = document.getElementById('statusBadge');
+const Lel = document.getElementById('Lformula');
+
+const W=300, H=300, cx=W/2, cy=H/2;
+const STEPS=1080;
+
+function isInt(n){ return Math.abs(n - Math.round(n)) < 0.04; }
+
+function draw(n){
+  ctx.clearRect(0,0,W,H);
+  const dark = window.matchMedia('(prefers-color-scheme:dark)').matches;
+
+  const amp = Math.max(6, 18 - n*0.9);
+  const R = 105 - amp*0.3;
+
+  ctx.fillStyle = dark ? 'rgba(55,138,221,0.07)' : '#E6F1FB';
+  ctx.beginPath(); ctx.arc(cx,cy,R+amp+6,0,2*Math.PI); ctx.fill();
+
+  ctx.strokeStyle = dark ? 'rgba(150,160,180,0.25)' : 'rgba(100,110,140,0.18)';
+  ctx.lineWidth=1.5; ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.arc(cx,cy,R,0,2*Math.PI); ctx.stroke();
+  ctx.setLineDash([]);
+
+  const ok = isInt(n);
+  const pts=[];
+  for(let i=0; i<=STEPS; i++){
+    const phi=(i/STEPS)*2*Math.PI;
+    const r=R+amp*Math.sin(n*phi);
+    pts.push([cx+r*Math.cos(phi), cy-r*Math.sin(phi)]);
+  }
+
+  ctx.strokeStyle = ok ? '#185FA5' : '#E24B4A';
+  ctx.lineWidth=2.6;
+  ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1]);
+  for(let i=1; i<pts.length; i++) ctx.lineTo(pts[i][0],pts[i][1]);
+  ctx.stroke();
+
+  ctx.fillStyle = dark ? 'rgba(200,200,200,0.5)' : 'rgba(80,80,80,0.4)';
+  ctx.beginPath(); ctx.arc(cx,cy,4,0,2*Math.PI); ctx.fill();
+
+  if(!ok){
+    const p0=pts[0], pN=pts[STEPS];
+    ctx.strokeStyle='#E24B4A'; ctx.lineWidth=1.5; ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.moveTo(p0[0],p0[1]); ctx.lineTo(pN[0],pN[1]); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#185FA5'; ctx.beginPath(); ctx.arc(p0[0],p0[1],5.5,0,2*Math.PI); ctx.fill();
+    ctx.fillStyle='#E24B4A'; ctx.beginPath(); ctx.arc(pN[0],pN[1],5.5,0,2*Math.PI); ctx.fill();
+    ctx.fillStyle='#A32D2D'; ctx.font='600 13px Helvetica,Arial,sans-serif';
+    const lx = pN[0]>cx ? pN[0]+8 : pN[0]-60;
+    ctx.fillText('Sprung!', lx, pN[1]-7);
+  }
+
+  nValEl.textContent = (Math.round(n*100)/100).toFixed(2);
+
+  if(ok){
+    statusEl.className='status ok';
+    statusEl.textContent='erlaubt \u2014 stehende Welle';
+    Lel.textContent='L = '+Math.round(n)+' \u00b7 \u210f';
+  } else {
+    statusEl.className='status bad';
+    statusEl.textContent='nicht erlaubt \u2014 Sprung!';
+    Lel.innerHTML='<span style="color:#A32D2D">kein station\u00e4rer Zustand</span>';
+  }
+}
+
+function setN(v){ slider.value=v; draw(parseFloat(v)); }
+slider.addEventListener('input', ()=>draw(parseFloat(slider.value)));
+draw(1);
+</script>
+</body>
+</html>
