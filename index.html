@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EP4 Interactive Demos · TUM</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap');
+
+:root {
+  --bg: #080a0e;
+  --surface: #0e1118;
+  --border: #181d26;
+  --border2: #232a36;
+  --tum: #3070b3;
+  --tum-bright: #4a8fd4;
+  --text: #b8bec8;
+  --text-dim: #4a5568;
+  --text-bright: #eef1f6;
+  --t1: #4ec9a0;
+  --t2: #3b8beb;
+  --t3: #e06c3a;
+  --t4: #a78bfa;
+  --t5: #f0c040;
+  --t6: #f87171;
+  --t7: #60d9fa;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-weight: 300;
+  min-height: 100vh;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(48,112,179,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(48,112,179,0.025) 1px, transparent 1px);
+  background-size: 44px 44px;
+  pointer-events: none; z-index: 0;
+}
+
+/* ── Hero ── */
+.hero {
+  position: relative; z-index: 1;
+  padding: 56px 52px 44px;
+  border-bottom: 1px solid var(--border);
+  max-width: 1120px; margin: 0 auto;
+}
+
+.tum-badge {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; color: var(--tum-bright);
+  letter-spacing: 0.12em; text-transform: uppercase;
+  border: 1px solid rgba(74,143,212,0.22);
+  padding: 4px 10px; border-radius: 2px;
+  background: rgba(48,112,179,0.05);
+  display: inline-block; margin-bottom: 20px;
+}
+
+.hero h1 {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: clamp(24px, 3vw, 38px);
+  font-weight: 400; color: var(--text-bright);
+  letter-spacing: -0.01em; line-height: 1.15;
+}
+.hero h1 span { color: var(--tum-bright); }
+
+.hero-sub {
+  margin-top: 14px;
+  font-size: 15px; color: var(--text-dim);
+  line-height: 1.65; max-width: 580px;
+}
+.hero-sub a {
+  color: var(--tum-bright); text-decoration: none;
+  border-bottom: 1px solid rgba(74,143,212,0.3);
+  transition: border-color 0.2s;
+}
+.hero-sub a:hover { border-color: var(--tum-bright); }
+
+.hero-meta {
+  margin-top: 28px;
+  display: flex; gap: 18px; flex-wrap: wrap; align-items: center;
+}
+.meta-pill {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; color: var(--text-dim);
+  display: flex; align-items: center; gap: 6px;
+}
+.meta-pill .dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--tum-bright); opacity: 0.45;
+}
+.claude-note {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; color: var(--text-dim);
+  border: 1px solid var(--border2); padding: 5px 11px;
+  border-radius: 2px; display: inline-flex; align-items: center; gap: 7px;
+}
+.claude-note .ai { color: #e06c3a; font-weight: 500; }
+
+/* ── Nav ── */
+.nav-strip {
+  position: relative; z-index: 1;
+  max-width: 1120px; margin: 0 auto;
+  padding: 14px 52px;
+  border-bottom: 1px solid var(--border);
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+}
+.nav-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; color: var(--text-dim);
+  letter-spacing: 0.1em; text-transform: uppercase;
+  margin-right: 4px; flex-shrink: 0;
+}
+.nav-pill {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; padding: 3px 10px;
+  border-radius: 2px; border: 1px solid var(--border2);
+  background: none; color: var(--text-dim);
+  text-decoration: none; white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.nav-pill:hover { color: var(--text-bright); background: var(--surface); }
+
+/* ── Content ── */
+.content {
+  position: relative; z-index: 1;
+  max-width: 1120px; margin: 0 auto;
+  padding: 8px 52px 80px;
+}
+
+/* ── Topic ── */
+.topic {
+  margin-top: 48px;
+  opacity: 0; transform: translateY(10px);
+  animation: fadeUp 0.35s ease forwards;
+}
+.topic:nth-child(1){animation-delay:0.04s}
+.topic:nth-child(2){animation-delay:0.08s}
+.topic:nth-child(3){animation-delay:0.12s}
+.topic:nth-child(4){animation-delay:0.16s}
+.topic:nth-child(5){animation-delay:0.20s}
+.topic:nth-child(6){animation-delay:0.24s}
+.topic:nth-child(7){animation-delay:0.28s}
+@keyframes fadeUp { to { opacity:1; transform:translateY(0); } }
+
+.topic-header {
+  display: flex; align-items: baseline; gap: 14px;
+  padding-bottom: 12px; margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.topic-tag {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; font-weight: 500;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 2px; border: 1px solid;
+  white-space: nowrap; flex-shrink: 0;
+}
+.topic-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 16px; font-weight: 400; color: var(--text-bright);
+}
+.topic-de {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 12px; color: var(--text-dim);
+  font-weight: 300; margin-left: 6px; font-style: italic;
+}
+.topic-count {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; color: var(--text-dim);
+  margin-left: auto; flex-shrink: 0;
+}
+
+.t1 .topic-tag{color:var(--t1);border-color:rgba(78,201,160,0.22);background:rgba(78,201,160,0.04)}
+.t2 .topic-tag{color:var(--t2);border-color:rgba(59,139,235,0.22);background:rgba(59,139,235,0.04)}
+.t3 .topic-tag{color:var(--t3);border-color:rgba(224,108,58,0.22);background:rgba(224,108,58,0.04)}
+.t4 .topic-tag{color:var(--t4);border-color:rgba(167,139,250,0.22);background:rgba(167,139,250,0.04)}
+.t5 .topic-tag{color:var(--t5);border-color:rgba(240,192,64,0.22);background:rgba(240,192,64,0.04)}
+.t6 .topic-tag{color:var(--t6);border-color:rgba(248,113,113,0.22);background:rgba(248,113,113,0.04)}
+.t7 .topic-tag{color:var(--t7);border-color:rgba(96,217,250,0.22);background:rgba(96,217,250,0.04)}
+
+/* ── Demo grid ── */
+.demo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 8px;
+}
+
+/* ── Demo card ── */
+.demo-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 15px 17px 32px;
+  text-decoration: none; display: block;
+  transition: border-color 0.18s, background 0.18s, transform 0.14s;
+  position: relative; overflow: hidden;
+}
+.demo-card::after {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  opacity: 0; transition: opacity 0.18s;
+}
+.demo-card:hover { border-color:var(--border2); background:#10151e; transform:translateY(-1px); }
+.demo-card:hover::after { opacity: 1; }
+
+.t1 .demo-card::after{background:var(--t1)}
+.t2 .demo-card::after{background:var(--t2)}
+.t3 .demo-card::after{background:var(--t3)}
+.t4 .demo-card::after{background:var(--t4)}
+.t5 .demo-card::after{background:var(--t5)}
+.t6 .demo-card::after{background:var(--t6)}
+.t7 .demo-card::after{background:var(--t7)}
+
+.card-file {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px; color:var(--text-dim);
+  margin-bottom:6px; white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis;
+}
+.card-title {
+  font-size:14px; font-weight:500;
+  color:var(--text-bright); margin-bottom:6px; line-height:1.3;
+}
+.card-desc { font-size:12.5px; color:var(--text-dim); line-height:1.55; }
+.card-arrow {
+  position:absolute; bottom:13px; right:15px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:13px; color:var(--border2);
+  transition:color 0.18s, transform 0.18s;
+}
+.demo-card:hover .card-arrow { color:var(--text-dim); transform:translateX(2px); }
+
+/* ── Footer ── */
+footer {
+  position:relative; z-index:1;
+  border-top:1px solid var(--border);
+  padding:22px 52px;
+  max-width:1120px; margin:0 auto;
+  display:flex; justify-content:space-between;
+  align-items:center; flex-wrap:wrap; gap:12px;
+}
+footer .foot-left {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px; color:var(--text-dim);
+}
+footer a { color:var(--tum-bright); text-decoration:none; }
+footer a:hover { text-decoration:underline; }
+.issue-btn {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px; color:var(--text-dim);
+  border:1px solid var(--border2); padding:5px 12px;
+  border-radius:2px; text-decoration:none;
+  transition:border-color 0.18s, color 0.18s;
+}
+.issue-btn:hover { border-color:var(--tum-bright); color:var(--tum-bright)!important; text-decoration:none; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="tum-badge">Technische Universität München &nbsp;·&nbsp; Experimentalphysik 4 &nbsp;·&nbsp; SoSe 2026</div>
+  <h1>Interactive Demos<br><span>Quantum Mechanics</span></h1>
+  <p class="hero-sub">
+    Self-contained browser visualizations for <em>Experimentalphysik 4</em>,
+    taught by <a href="https://www.ph.nat.tum.de/en/astroparticle/team/resconi-elisa/" target="_blank">Prof. Dr. Elisa Resconi</a> at TUM.
+    No installation — open any demo directly in your browser.
+    Built with <a href="https://claude.ai" target="_blank">Claude (Anthropic)</a> to support physical intuition.
+  </p>
+  <div class="hero-meta">
+    <div class="meta-pill"><span class="dot"></span>20 demos</div>
+    <div class="meta-pill"><span class="dot"></span>7 topics</div>
+    <div class="meta-pill"><span class="dot"></span>pure HTML / JS · no dependencies</div>
+    <div class="claude-note"><span class="ai">AI</span> developed with Claude (Anthropic)</div>
+  </div>
+</div>
+
+<div class="nav-strip">
+  <span class="nav-label">Topics</span>
+  <a class="nav-pill" href="#quantization">Quantization</a>
+  <a class="nav-pill" href="#wavefunctions">Wavefunctions</a>
+  <a class="nav-pill" href="#doubleslit">Double Slit</a>
+  <a class="nav-pill" href="#angularmomentum">Angular Momentum</a>
+  <a class="nav-pill" href="#hydrogen">Hydrogen Atom</a>
+  <a class="nav-pill" href="#statistics">Quantum Statistics</a>
+  <a class="nav-pill" href="#zeeman">Zeeman Effect</a>
+</div>
+
+<div class="content">
+
+  <!-- 1 -->
+  <div class="topic t1" id="quantization">
+    <div class="topic-header">
+      <div class="topic-tag">Quantization</div>
+      <div class="topic-title">Why Energy is Discrete
+        <span class="topic-de">Warum Energie diskret ist</span>
+      </div>
+      <div class="topic-count">2 demos</div>
+    </div>
+    <div class="demo-grid">
+      <a class="demo-card" href="quantization/bohr_spiral_collapse.html">
+        <div class="card-file">bohr_spiral_collapse.html</div>
+        <div class="card-title">Classical Collapse vs. Bohr Orbit</div>
+        <div class="card-desc">A classical electron radiates energy and spirals into the nucleus. Bohr's quantization condition prevents this — the starting point of quantum mechanics.</div>
+        <div class="card-arrow">→</div>
+      </a>
+      <a class="demo-card" href="quantization/debroglie_kreisbahn_interaktiv_n10.html">
+        <div class="card-file">debyglie_kreisbahn_interaktiv_n10.html</div>
+        <div class="card-title">de Broglie on a Circular Orbit</div>
+        <div class="card-desc">Non-integer n destroys the wave through destructive interference; integer n survives as a standing wave. Quantization forced, not postulated.</div>
+        <div class="card-arrow">→</div>
+      </a>
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <div class="topic t2" id="wavefunctions">
+    <div class="topic-header">
+      <div class="topic-tag">Wavefunctions &amp; Probability</div>
+      <div class="topic-title">ψ, |ψ|², and the Born Rule
+        <span class="topic-de">Wellenfunktion · Born-Regel</span>
+      </div>
+      <div class="topic-count">4 demos</div>
+    </div>
+    <div class="demo-grid">
+      <a class="demo-card" href="wavefunctions/wavepacket_fourier_demo.html">
+        <div class="card-file">wavepacket_fourier_demo.html</div>
+        <div class="card-title">Fourier Wavepacket</div>
+        <div class="card-desc">Build a Gaussian wavepacket from sinusoidal components. The σ slider reveals the Heisenberg position–momentum tradeoff in real time.</div>
+        <div class="card-arrow">→</div>
+      </a>
+      <a class="demo-card" href="wavefunctions/wavepacket_normalized.html">
+        <div class="card-file">wavepacket_normalized.html</div>
+        <div class="card-title">Normalized Wavepacket</div>
+        <div class="card-desc">Three panels: ψ(x), |ψ(x)|², and |φ(k)|² shown simultaneously. The wavefunction, its probability density, and its momentum representation.</div>
+        <div class="card-arrow">→</div>
+      </a>
+      <a class="demo-card" href="wavefunctions/elektron_messung_orbital.html">
+        <div class="card-file">elektron_messung_orbital.html</div>
+        <div class="card-title">Electron Measurement &amp; Born Rule</div>
+        <div class="card-desc">Click "measure" to sample a single electron position from |ψ_nlm|². Repeat many times — the orbital reconstructs itself, one measurement at a time.</div>
+        <div class="card-arrow">→</div>
+      </a>
+      <a class="demo-card" href="wavefunctions/superposition_interferenz.html">
+        <div class="card-file">superposition_interferenz.html</div>
+        <div class="card-title">Superposition vs. Classical Mixture</div>
+        <div class="card-desc">Compare ½|ψ₁|²+½|ψ₂|² with |ψ₁+e^{iφ}ψ₂|²/2. A phase slider reveals the interference term — the thing classical probabilities can never produce.</div>
+        <div class="card-arrow">→</div>
+      </a>
+    </div>
+  </div>
+
+  <!-- 3 -->
+  <div class="topic t3" id="doubleslit">
+    <div class="topic-header">
+      <div class="topic-tag">Double Slit</div>
+      <div class="topic-title">The Central Experiment of Quantum Mechanics
+        <span class="topic-de">Doppelspalt · Interferenz · Welcher-Weg</span>
+      </div>
+      <div class="topic-count">6 demos</div>
+    </div>
+    <div class="demo-grid">
+      <a class="demo-card" href="doubleslit/doppelspalt_klassisch.html">
+        <div class="card-file">doppelspalt_klassisch.html</div>
+        <div class="card-title">Classical Particles</div>
+        <div class="card-desc">Animated classical particles, each traveling through exactly one slit. Result: two Gaussian humps, no interference. The baseline before quantum mechanics.</div>
+        <div class="card-arrow">→</div>
+      </a>
+      <a class="demo-card" href="doubleslit/doppelspalt_elektronen.html">
+        <div class="card-file">doppelspalt_elektronen.html</div>
+        <div class="card-title">Quantum Electrons</div>
+        <div class="card-desc">The interference pattern builds up one electron at a time. Toggle between double and single slit to see where the fringes come from.</div>
+        <div class="card-arrow">→</div>
+      </a>
+      <a class="demo-card" href="doubleslit/doppelspalt_bach2013.html">
+        <div class="card-file">doppelspalt_bach2013.html</div>
+        <div class="card-title">Bach et al. 2013</div>
+        <div class="card-desc">Reproduces the four measured distributions P₁, P₂, P₁₂, and P₁+P₂ from the landmark New J. Phys. experiment — Feynman's thought experiment realized.</div>
+        <div class="card-arrow">→</div>
+      </a>
+      <a class="demo-card" href="doubleslit/doppelspalt_welcherweg.html">
+        <div class="card-file">doppelspalt_welcherweg.html</div>
+        <div class="card-title">Which-Way &amp; Decoherence</div>
+        <div class="card-desc">Toggle the detector on and off. With which-way information the pattern vanishes; without it, interference returns. Complementarity in a single click.</div>
+        <div class="card-arrow">→</div>
+      </a>
+      <a class="demo-card" href="doubleslit/doppelspalt_komplementaritaet.html">
+        <div class="card-file">doppelspalt_komplementaritaet.html</div>
+        <div class="card-title">Complementarity Slider</div>
+        <div class="card-desc">A continuous visibility slider V interpolates between fully classical and fully quantum — fringe visibility and which-way information trade off continuously.</div>
+        <div class="card-arrow">→</div>
+      </a>
+      <a class="demo-card" href="doubleslit/doppelspalt_wellenpaket.html">
+        <div class="card-file">doppelspalt_wellenpaket.html</div>
+        <div class="card-title">Wavepacket through the Slit</div>
+        <div class="card-desc">Huygens construction: a Gaussian wavepacket hits the barrier, two spherical waves emerge and interfere. "Messen" collapses the wavefunction to a single point.</div>
+        <div class="card-arrow">→</div>
+      </a>
+    </div>
+  </div>
+
+  <!-- 4 -->
+  <div class="topic t4" id="angularmomentum">
+    <div class="topic-header">
+      <div class="topic-tag">Angular Momentum</div>
+      <div class="topic-title">L, m, and Space Quantization
+        <span class="topic-de">Drehimpuls · Raumquantisierung · Kugelflächenfunktionen</span>
+      </div>
+      <div class="topic-count">3 demos</div>
+    </div>
+    <div class="demo-grid">
+      <a class="demo-card" href="angular-momentum/raumquantisierung_n_l_m.html">
+        <div class="card-file">raumquantisierung_n_l_m.html</div>
+        <div class="card-title">Space Quantization</div>
+        <div class="card-desc">Animated cone diagram with precessing L vector. The n, ℓ, m hierarchy visualized — the angular momentum vector can never align parallel to the z-axis.</div>
+        <div class="card-arrow">→</div>
+      </a>
+      <a class="demo-card" href="angular-momentum/kugelflaechen.html">
+        <div class="card-file">kugelflaechen.html</div>
+        <div class="card-title">Spherical Harmonics |Y_lm|²</div>
+        <div class="card-desc">Polar diagrams for ℓ = 0 to 5, 2D cross-section and 3D surface side by side. Explicit analytic formulas shown live for each (ℓ, m) state.</div>
+        <div class="card-arrow">→</div>
+      </a>
+      <a class="demo-card" href="angular-momentum/raumquantisierung_L_und_S.html">
+        <div class="card-file">raumquantisierung_L_und_S.html</div>
+        <div class="card-title">Orbital L and Spin S Side by Side</div>
+        <div class="card-desc">Cone diagrams for L (ℓ = 0–3) and S (s = ½) with precession — the key difference between integer and half-integer quantum numbers made visual.</div>
+        <div class="card-arrow">→</div>
+      </a>
+    </div>
+  </div>
+
+  <!-- 5 -->
+  <div class="topic t5" id="hydrogen">
+    <div class="topic-header">
+      <div class="topic-tag">Hydrogen Atom</div>
+      <div class="topic-title">Orbitals, Radial Functions &amp; Energy Levels
+        <span class="topic-de">Wasserstoffatom · Orbitale · E_n = −13.6/n² eV</span>
+      </div>
+      <div class="topic-count">2 demos</div>
+    </div>
+    <div class="demo-grid">
+      <a class="demo-card" href="hydrogen/wasserstoff_orbitale.html">
+        <div class="card-file">wasserstoff_orbitale.html</div>
+        <div class="card-title">Hydrogen Orbitals — 2D</div>
+        <div class="card-desc">Three panels: |ψ_nlm|² density cross-section, |Y_ℓm|² polar diagram, and r²|R_nl|² radial probability with energy ladder. Interactive n, ℓ, m up to n = 4.</div>
+        <div class="card-arrow">→</div>
+      </a>
+      <a class="demo-card" href="hydrogen/hydrogen_orbitals_3d_v2.html">
+        <div class="card-file">hydrogen_orbitals_3d_v2.html</div>
+        <div class="card-title">Hydrogen Orbitals — 3D</div>
+        <div class="card-desc">WebGL point-cloud rendering using inverse CDF sampling. All states up to n = 4 including f-orbitals, with analytic R_nℓ and Y_ℓm formulas shown live.</div>
+        <div class="card-arrow">→</div>
+      </a>
+    </div>
+  </div>
+
+  <!-- 6 -->
+  <div class="topic t6" id="statistics">
+    <div class="topic-header">
+      <div class="topic-tag">Quantum Statistics</div>
+      <div class="topic-title">Fermions, Bosons &amp; the Pauli Principle
+        <span class="topic-de">Fermionen · Bosonen · Pauli-Prinzip · BEC</span>
+      </div>
+      <div class="topic-count">1 demo</div>
+    </div>
+    <div class="demo-grid">
+      <a class="demo-card" href="statistics/fermionen_bosonen_statistik.html">
+        <div class="card-file">fermionen_bosonen_statistik.html</div>
+        <div class="card-title">Fermions vs. Bosons</div>
+        <div class="card-desc">Add particles one by one. Electrons obey Pauli exclusion — a flash signals a forbidden state. Bosons pile into the ground state, forming a pocket Bose–Einstein condensate.</div>
+        <div class="card-arrow">→</div>
+      </a>
+    </div>
+  </div>
+
+  <!-- 7 -->
+  <div class="topic t7" id="zeeman">
+    <div class="topic-header">
+      <div class="topic-tag">Zeeman Effect</div>
+      <div class="topic-title">Atoms in a Magnetic Field
+        <span class="topic-de">Zeeman-Effekt · Aufspaltung · E = E_n + m·μ_B·B</span>
+      </div>
+      <div class="topic-count">1 demo</div>
+    </div>
+    <div class="demo-grid">
+      <a class="demo-card" href="zeeman/zeeman_wasserstoff_v2.html">
+        <div class="card-file">zeeman_wasserstoff_v2.html</div>
+        <div class="card-title">Normal Zeeman Effect</div>
+        <div class="card-desc">All 2ℓ+1 orbital shapes shown simultaneously alongside the energy diagram. Drag B from 0 to 50 T — the degenerate levels fan out, but the orbital shapes never change.</div>
+        <div class="card-arrow">→</div>
+      </a>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="foot-left">
+    <a href="https://github.com/ElisaResconi/ep4-demos" target="_blank">github.com/ElisaResconi/ep4-demos</a>
+    &nbsp;·&nbsp; TUM Experimentalphysik 4 &nbsp;·&nbsp; SoSe 2026
+  </div>
+  <a class="issue-btn" href="https://github.com/ElisaResconi/ep4-demos/issues/new" target="_blank">
+    → corrections &amp; suggestions welcome
+  </a>
+</footer>
+
+</body>
+</html>
