@@ -142,6 +142,7 @@ body::before {
 .topic:nth-child(5){animation-delay:0.20s}
 .topic:nth-child(6){animation-delay:0.24s}
 .topic:nth-child(7){animation-delay:0.28s}
+.topic:nth-child(8){animation-delay:0.32s}
 @keyframes fadeUp { to { opacity:1; transform:translateY(0); } }
 
 .topic-header {
@@ -277,8 +278,8 @@ footer a:hover { text-decoration:underline; }
     Built with <a href="https://claude.ai" target="_blank">Claude (Anthropic)</a> to support physical intuition.
   </p>
   <div class="hero-meta">
-    <div class="meta-pill"><span class="dot"></span>20 demos</div>
-    <div class="meta-pill"><span class="dot"></span>7 topics</div>
+    <div class="meta-pill"><span class="dot"></span>21 demos</div>
+    <div class="meta-pill"><span class="dot"></span>8 topics</div>
     <div class="meta-pill"><span class="dot"></span>pure HTML / JS · no dependencies</div>
     <div class="claude-note"><span class="ai">AI</span> developed with Claude (Anthropic)</div>
   </div>
@@ -293,6 +294,7 @@ footer a:hover { text-decoration:underline; }
   <a class="nav-pill" href="#hydrogen">Hydrogen Atom</a>
   <a class="nav-pill" href="#statistics">Quantum Statistics</a>
   <a class="nav-pill" href="#zeeman">Zeeman Effect</a>
+  <a class="nav-pill" href="#measurement">Measurement</a>
 </div>
 
 <div class="content">
@@ -509,6 +511,25 @@ footer a:hover { text-decoration:underline; }
         <div class="card-file">Zeeman-Effekt | Wasserstoff im Magnetfeld.html</div>
         <div class="card-title">Normal Zeeman Effect</div>
         <div class="card-desc">All 2ℓ+1 orbital shapes shown simultaneously alongside the energy diagram. Drag B from 0 to 50 T — the degenerate levels fan out, but the orbital shapes never change.</div>
+        <div class="card-arrow">→</div>
+      </a>
+    </div>
+  </div>
+
+  <!-- 8. Measurement & Collapse -->
+  <div class="topic t2" id="measurement">
+    <div class="topic-header">
+      <div class="topic-tag">Measurement &amp; Collapse</div>
+      <div class="topic-title">What Happens When We Measure?
+        <span class="topic-de">Messung · Kollaps · Born-Regel · Kausalität</span>
+      </div>
+      <div class="topic-count">1 demo</div>
+    </div>
+    <div class="demo-grid">
+      <a class="demo-card" href="measurement/wavefunction_collapse_demo.html">
+        <div class="card-file">wavefunction_collapse_demo.html</div>
+        <div class="card-title">Wavefunction Collapse &amp; Born Rule</div>
+        <div class="card-desc">Two detectors, one electron — only one ever fires. Adjust the wavepacket position and width, measure repeatedly, and watch the Born rule emerge from irreducible randomness.</div>
         <div class="card-arrow">→</div>
       </a>
     </div>
