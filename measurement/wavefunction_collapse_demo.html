@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wellenfunktion: Kollaps bei Messung</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap');
+
+  :root {
+    --bg:        #0d0f14;
+    --panel:     #131720;
+    --border:    #1e2535;
+    --psi:       #4fa3e0;
+    --prob:      #e06b4f;
+    --collapse:  #f0c040;
+    --det-l:     #5ecf8a;
+    --det-r:     #cf5e9a;
+    --text:      #c8d0e0;
+    --muted:     #5a6580;
+    --accent:    #f0c040;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-size: 17px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 40px;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: #e8edf5;
+    margin-bottom: 4px;
+    text-align: center;
+  }
+
+  .subtitle {
+    font-style: italic;
+    color: var(--muted);
+    font-size: 1rem;
+    margin-bottom: 28px;
+    text-align: center;
+  }
+
+  .main {
+    width: 100%;
+    max-width: 820px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Canvas panel */
+  .canvas-wrap {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px 12px;
+    position: relative;
+  }
+
+  .canvas-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  canvas {
+    width: 100%;
+    height: 160px;
+    display: block;
+    border-radius: 4px;
+  }
+
+  /* Controls row */
+  .controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    letter-spacing: 0.05em;
+    padding: 9px 20px;
+    border-radius: 5px;
+    border: 1px solid;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: transparent;
+  }
+
+  .btn-measure {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .btn-measure:hover { background: rgba(240,192,64,0.12); }
+  .btn-measure:active { background: rgba(240,192,64,0.22); }
+
+  .btn-reset {
+    border-color: var(--muted);
+    color: var(--muted);
+  }
+  .btn-reset:hover { border-color: var(--text); color: var(--text); }
+
+  .slider-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 160px;
+  }
+
+  .slider-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  input[type=range] {
+    width: 100%;
+    accent-color: var(--psi);
+    height: 3px;
+  }
+
+  /* Stats panel */
+  .stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+
+  .stat-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 16px;
+    text-align: center;
+  }
+
+  .stat-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.1;
+  }
+
+  .stat-lbl {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  .stat-box.left  .stat-val { color: var(--det-l); }
+  .stat-box.right .stat-val { color: var(--det-r); }
+  .stat-box.total .stat-val { color: var(--text); }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    align-items: center;
+  }
+
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot {
+    width: 10px; height: 3px; border-radius: 2px;
+  }
+
+  /* Outcome flash */
+  .outcome-flash {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    padding: 8px 16px;
+    border-radius: 5px;
+    text-align: center;
+    transition: opacity 0.4s;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .outcome-flash.left-fired {
+    background: rgba(94,207,138,0.12);
+    border: 1px solid var(--det-l);
+    color: var(--det-l);
+  }
+  .outcome-flash.right-fired {
+    background: rgba(207,94,154,0.12);
+    border: 1px solid var(--det-r);
+    color: var(--det-r);
+  }
+  .outcome-flash.hidden { opacity: 0; }
+
+  /* Note */
+  .note {
+    background: rgba(240,192,64,0.06);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 5px 5px 0;
+    padding: 12px 16px;
+    font-style: italic;
+    font-size: 0.95rem;
+    color: #b0b8c8;
+    line-height: 1.55;
+  }
+
+  .note strong { color: var(--accent); font-style: normal; }
+
+  /* Bar chart for Born rule */
+  .bar-wrap {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 20px;
+  }
+
+  .bar-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .bar-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    width: 80px;
+    flex-shrink: 0;
+  }
+
+  .bar-track {
+    flex: 1;
+    background: var(--border);
+    border-radius: 3px;
+    height: 18px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+    min-width: 0;
+  }
+
+  .bar-fill.left  { background: var(--det-l); }
+  .bar-fill.right { background: var(--det-r); }
+
+  .bar-pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    width: 46px;
+    text-align: right;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  .bar-theory {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 2px;
+    background: var(--accent);
+    opacity: 0.7;
+  }
+</style>
+</head>
+<body>
+
+<h1>Wellenfunktion &amp; Kollaps bei Messung</h1>
+<p class="subtitle">Was passiert, wenn wir messen?</p>
+
+<div class="main">
+
+  <!-- ψ(x) before measurement -->
+  <div class="canvas-wrap">
+    <div class="canvas-label">
+      <span>|ψ(x)|² — Aufenthaltswahrscheinlichkeit</span>
+      <div class="legend">
+        <span class="legend-item"><span class="legend-dot" style="background:var(--prob)"></span>|ψ|²</span>
+        <span class="legend-item"><span class="legend-dot" style="background:var(--det-l)"></span>Detektor L</span>
+        <span class="legend-item"><span class="legend-dot" style="background:var(--det-r)"></span>Detektor R</span>
+      </div>
+    </div>
+    <canvas id="cvMain"></canvas>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="btn btn-measure" id="btnMeasure">⚡ Messen</button>
+    <button class="btn btn-reset" id="btnReset">↺ Reset</button>
+    <div class="slider-group">
+      <div class="slider-label">
+        <span>Position des Pakets</span>
+        <span id="lblPos"></span>
+      </div>
+      <input type="range" id="slPos" min="-60" max="60" value="0" step="1">
+    </div>
+    <div class="slider-group">
+      <div class="slider-label">
+        <span>Breite σ</span>
+        <span id="lblSig"></span>
+      </div>
+      <input type="range" id="slSig" min="10" max="80" value="40" step="1">
+    </div>
+  </div>
+
+  <!-- Outcome flash -->
+  <div class="outcome-flash hidden" id="outcomeFlash"></div>
+
+  <!-- After collapse canvas -->
+  <div class="canvas-wrap" id="collapsePanel" style="display:none">
+    <div class="canvas-label">
+      <span>Nach dem Kollaps — neue |ψ|² + Schrödinger-Ausbreitung</span>
+    </div>
+    <canvas id="cvCollapse"></canvas>
+  </div>
+
+  <!-- Born rule bar chart -->
+  <div class="bar-wrap">
+    <div class="bar-title">Born-Regel — Empirische vs. theoretische Wahrscheinlichkeit</div>
+    <div class="bar-row">
+      <div class="bar-name" style="color:var(--det-l)">Detektor L</div>
+      <div class="bar-track">
+        <div class="bar-fill left" id="barL" style="width:0%"></div>
+        <div class="bar-theory" id="theoryL" style="left:50%"></div>
+      </div>
+      <div class="bar-pct" id="pctL">—</div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-name" style="color:var(--det-r)">Detektor R</div>
+      <div class="bar-track">
+        <div class="bar-fill right" id="barR" style="width:0%"></div>
+        <div class="bar-theory" id="theoryR" style="left:50%"></div>
+      </div>
+      <div class="bar-pct" id="pctR">—</div>
+    </div>
+    <div style="font-family:'JetBrains Mono',monospace; font-size:0.68rem; color:var(--muted); margin-top:6px;">
+      <span style="color:var(--accent)">│</span> = theoretische Erwartung nach Born-Regel (∫|ψ|²dx über Detektorbereich)
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-box left">
+      <div class="stat-val" id="statL">0</div>
+      <div class="stat-lbl">Detektor L ausgelöst</div>
+    </div>
+    <div class="stat-box right">
+      <div class="stat-val" id="statR">0</div>
+      <div class="stat-lbl">Detektor R ausgelöst</div>
+    </div>
+    <div class="stat-box total">
+      <div class="stat-val" id="statN">0</div>
+      <div class="stat-lbl">Messungen gesamt</div>
+    </div>
+  </div>
+
+  <!-- Note -->
+  <div class="note">
+    <strong>Beobachtung:</strong> Immer genau <em>ein</em> Detektor schlägt an — nie beide, nie keiner.
+    Die Häufigkeiten nähern sich mit vielen Messungen den theoretischen Werten nach der <strong>Born-Regel</strong> an.
+    Der Kollaps selbst ist instantan und nichtlokal — die Schrödingergleichung beschreibt ihn <em>nicht</em>.
+    Was genau dabei passiert, ist eine offene Frage der Physik.
+  </div>
+
+</div>
+
+<script>
+// ─── Layout constants ───────────────────────────────────────────────
+const W = 780, H = 160;
+const DET_L_X = 180;   // detector left center in data coords (data range: 0..W)
+const DET_R_X = 600;
+const DET_WIDTH = 60;  // half-width in data coords
+
+// ─── State ──────────────────────────────────────────────────────────
+let countL = 0, countR = 0;
+let collapseAnim = null;
+let collapseT = 0;
+let collapsePos = 0;
+let spreadT = 0;
+let isAnimating = false;
+
+// ─── Canvas setup ───────────────────────────────────────────────────
+function setupCanvas(id) {
+  const canvas = document.getElementById(id);
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return { canvas, ctx };
+}
+
+const main    = setupCanvas('cvMain');
+const collapse = setupCanvas('cvCollapse');
+
+// ─── Gaussian |ψ|² ──────────────────────────────────────────────────
+function gaussian(x, mu, sigma) {
+  const dx = x - mu;
+  return Math.exp(-dx * dx / (2 * sigma * sigma));
+}
+
+// Compute P_L and P_R by integration
+function computeProbabilities(mu, sigma) {
+  let pL = 0, pR = 0, norm = 0;
+  for (let x = 0; x < W; x++) {
+    const g = gaussian(x, mu, sigma);
+    if (x >= DET_L_X - DET_WIDTH && x <= DET_L_X + DET_WIDTH) pL += g;
+    if (x >= DET_R_X - DET_WIDTH && x <= DET_R_X + DET_WIDTH) pR += g;
+    norm += g;
+  }
+  return { pL: pL / norm, pR: pR / norm };
+}
+
+// ─── Draw main canvas ───────────────────────────────────────────────
+function drawMain() {
+  const { ctx } = main;
+  const mu    = W/2 + parseFloat(document.getElementById('slPos').value) * 2;
+  const sigma = parseFloat(document.getElementById('slSig').value);
+  ctx.clearRect(0, 0, W, H);
+
+  // Detector zones
+  drawDetector(ctx, DET_L_X, '#5ecf8a');
+  drawDetector(ctx, DET_R_X, '#cf5e9a');
+
+  // |ψ|² curve
+  drawPsi(ctx, mu, sigma, '#e06b4f', 1.0);
+
+  // Axis
+  drawAxis(ctx);
+
+  // Update theory lines
+  const { pL, pR } = computeProbabilities(mu, sigma);
+  document.getElementById('theoryL').style.left = (pL * 100).toFixed(1) + '%';
+  document.getElementById('theoryR').style.left = (pR * 100).toFixed(1) + '%';
+}
+
+function drawDetector(ctx, cx, color) {
+  ctx.fillStyle = color + '18';
+  ctx.fillRect(cx - DET_WIDTH, 0, DET_WIDTH*2, H - 20);
+  ctx.strokeStyle = color + '60';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.strokeRect(cx - DET_WIDTH, 0, DET_WIDTH*2, H - 20);
+  ctx.setLineDash([]);
+  // Label
+  ctx.fillStyle = color + 'cc';
+  ctx.font = '600 11px JetBrains Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(cx < W/2 ? 'L' : 'R', cx, H - 6);
+}
+
+function drawPsi(ctx, mu, sigma, color, alpha) {
+  const maxH = H - 30;
+  ctx.beginPath();
+  for (let x = 0; x < W; x++) {
+    const y = H - 20 - gaussian(x, mu, sigma) * maxH;
+    x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2.5;
+  ctx.globalAlpha = alpha;
+  ctx.stroke();
+  // Fill
+  ctx.lineTo(W, H - 20);
+  ctx.lineTo(0, H - 20);
+  ctx.closePath();
+  ctx.fillStyle = color + '22';
+  ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+function drawAxis(ctx) {
+  ctx.strokeStyle = '#2a3350';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, H - 20);
+  ctx.lineTo(W, H - 20);
+  ctx.stroke();
+  ctx.fillStyle = '#3a4560';
+  ctx.font = '10px JetBrains Mono';
+  ctx.textAlign = 'center';
+  ctx.fillText('x', W - 8, H - 6);
+}
+
+// ─── Draw collapse canvas ────────────────────────────────────────────
+function drawCollapse(pos, phase) {
+  const { ctx } = collapse;
+  ctx.clearRect(0, 0, W, H);
+  drawDetector(ctx, DET_L_X, '#5ecf8a');
+  drawDetector(ctx, DET_R_X, '#cf5e9a');
+
+  // Spread: narrow Gaussian that widens over time
+  const sigma = 6 + phase * 55;
+  const color = pos === DET_L_X ? '#5ecf8a' : '#cf5e9a';
+  drawPsi(ctx, pos, sigma, color, 1.0);
+
+  // Label
+  ctx.fillStyle = color;
+  ctx.font = '600 11px JetBrains Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('← Schrödinger-Ausbreitung nach Kollaps', W/2, 16);
+  drawAxis(ctx);
+}
+
+// ─── Measure ─────────────────────────────────────────────────────────
+function measure() {
+  if (isAnimating) return;
+  const mu    = W/2 + parseFloat(document.getElementById('slPos').value) * 2;
+  const sigma = parseFloat(document.getElementById('slSig').value);
+  const { pL, pR } = computeProbabilities(mu, sigma);
+
+  // Normalize only L and R (ignore tails outside detectors)
+  const total = pL + pR;
+  const pLn = total > 0 ? pL / total : 0.5;
+
+  // Random outcome
+  const firedLeft = Math.random() < pLn;
+  collapsePos = firedLeft ? DET_L_X : DET_R_X;
+
+  if (firedLeft) { countL++; } else { countR++; }
+  updateStats();
+
+  // Flash
+  const flash = document.getElementById('outcomeFlash');
+  flash.className = 'outcome-flash ' + (firedLeft ? 'left-fired' : 'right-fired');
+  flash.textContent = firedLeft
+    ? '⚡ Detektor L angeschlagen — Kollaps bei x = xL'
+    : '⚡ Detektor R angeschlagen — Kollaps bei x = xR';
+  setTimeout(() => flash.classList.add('hidden'), 3000);
+
+  // Show collapse panel and animate
+  document.getElementById('collapsePanel').style.display = 'block';
+  isAnimating = true;
+  spreadT = 0;
+
+  function animSpread() {
+    spreadT += 0.012;
+    drawCollapse(collapsePos, Math.min(spreadT, 1));
+    if (spreadT < 1) {
+      collapseAnim = requestAnimationFrame(animSpread);
+    } else {
+      isAnimating = false;
+    }
+  }
+  if (collapseAnim) cancelAnimationFrame(collapseAnim);
+  collapseAnim = requestAnimationFrame(animSpread);
+}
+
+// ─── Stats & bars ────────────────────────────────────────────────────
+function updateStats() {
+  const n = countL + countR;
+  document.getElementById('statL').textContent = countL;
+  document.getElementById('statR').textContent = countR;
+  document.getElementById('statN').textContent = n;
+
+  if (n > 0) {
+    const fL = (countL / n * 100).toFixed(1);
+    const fR = (countR / n * 100).toFixed(1);
+    document.getElementById('barL').style.width = fL + '%';
+    document.getElementById('barR').style.width = fR + '%';
+    document.getElementById('pctL').textContent = fL + '%';
+    document.getElementById('pctR').textContent = fR + '%';
+  }
+}
+
+// ─── Slider labels ───────────────────────────────────────────────────
+function updateLabels() {
+  const pos = parseFloat(document.getElementById('slPos').value);
+  const sig = parseFloat(document.getElementById('slSig').value);
+  document.getElementById('lblPos').textContent = (pos >= 0 ? '+' : '') + pos;
+  document.getElementById('lblSig').textContent = sig;
+}
+
+// ─── Reset ───────────────────────────────────────────────────────────
+function reset() {
+  countL = 0; countR = 0;
+  updateStats();
+  document.getElementById('barL').style.width = '0%';
+  document.getElementById('barR').style.width = '0%';
+  document.getElementById('pctL').textContent = '—';
+  document.getElementById('pctR').textContent = '—';
+  document.getElementById('outcomeFlash').className = 'outcome-flash hidden';
+  document.getElementById('collapsePanel').style.display = 'none';
+  if (collapseAnim) cancelAnimationFrame(collapseAnim);
+  isAnimating = false;
+  drawMain();
+}
+
+// ─── Event listeners ─────────────────────────────────────────────────
+document.getElementById('btnMeasure').addEventListener('click', measure);
+document.getElementById('btnReset').addEventListener('click', reset);
+
+document.getElementById('slPos').addEventListener('input', () => {
+  updateLabels();
+  drawMain();
+});
+document.getElementById('slSig').addEventListener('input', () => {
+  updateLabels();
+  drawMain();
+});
+
+// ─── Init ─────────────────────────────────────────────────────────────
+updateLabels();
+drawMain();
+</script>
+</body>
+</html>
